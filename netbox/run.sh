@@ -64,27 +64,25 @@ wait_for_postgres() {
 }
 
 psql_admin() {
-  local database="$1" uri
+  local database="$1" socket_host
   shift
-  uri="postgresql://postgres@127.0.0.1:5432/${database}"
+  socket_host="$DB_SOCKET_DIR"
   log_debug "psql_admin: database=${database}, args=$*"
   if ! env -i \
       PATH="$PATH" \
       LANG="${LANG:-C.UTF-8}" \
       LC_ALL="${LC_ALL:-C.UTF-8}" \
       HOME=/var/lib/postgresql \
-      PGHOST=127.0.0.1 \
-      PGHOSTADDR=127.0.0.1 \
+      PGHOST="$socket_host" \
       PGPORT=5432 \
       PGDATABASE="$database" \
       PGUSER=postgres \
       PGAPPNAME="ha-addon-netbox" \
       PGSSLMODE=disable \
       PGSERVICEFILE=/dev/null \
-      PGPASSFILE=/dev/null \
       PGCONNECT_TIMEOUT=10 \
       PSQLRC=/dev/null \
-      gosu postgres psql "$uri" -v ON_ERROR_STOP=1 "$@"
+      gosu postgres psql -h "$socket_host" -p 5432 -U postgres -v ON_ERROR_STOP=1 -d "$database" "$@"
   then
     log "ERROR: psql_admin failed for database=${database} (args: $*)"
     return 1
