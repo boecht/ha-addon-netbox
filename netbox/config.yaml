@@ -1,8 +1,7 @@
 name: "NetBox"
 version: "0.1.0"
 slug: "netbox"
-description: >-
-  Document every IP, device, and rack in your network for centralized management.
+description: "Network asset management tool"
 arch:
   - amd64
   - aarch64
@@ -27,11 +26,16 @@ map:
     read_only: false
 options:
   reset_superuser: false
+  allowed_hosts:
+    - "*"
   housekeeping_interval: 3600
   enable_prometheus: false
+  plugins: []
 schema:
   reset_superuser: bool
-  allowed_hosts: "list(str)?"
+  allowed_hosts:
+    - str
   housekeeping_interval: int(300,86400)
   enable_prometheus: bool
-  plugins: "list(str)?"
+  plugins:
+    - str?
