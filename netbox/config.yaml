@@ -21,8 +21,10 @@ ingress: false
 host_network: false
 apparmor: false
 map:
-  - share:rw
-  - config:rw
+  - type: share
+    read_only: false
+  - type: config
+    read_only: false
 options:
   db_name: netbox
   db_user: netbox
@@ -55,8 +57,12 @@ schema:
   time_zone: str
   housekeeping_interval:
     type: int
+    minimum: 300
+    maximum: 86400
   enable_prometheus: bool
   plugins:
     type: list
+    items:
+      - type: str
     items:
       - type: str
