@@ -9,19 +9,19 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-       ca-certificates \
-       curl \
-       jq \
-       gosu \
-       tini \
-       postgresql \
-       postgresql-client \
-       redis-server \
-       redis-tools \
+    ca-certificates \
+    curl \
+    jq \
+    gosu \
+    tini \
+    postgresql \
+    postgresql-client \
+    redis-server \
+    redis-tools \
     && rm -rf /var/lib/apt/lists/*
 
 RUN if ! id -u netbox >/dev/null 2>&1; then \
-      addgroup --system netbox && adduser --system --ingroup netbox netbox; \
+    addgroup --system netbox && adduser --system --ingroup netbox netbox; \
     fi \
     && mkdir -p /data/postgres /data/redis /data/netbox/{media,reports,scripts} /run/postgresql \
     && chown -R postgres:postgres /data/postgres /run/postgresql \
