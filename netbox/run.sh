@@ -326,9 +326,9 @@ POSTGRES_STARTED=1
 wait_for_postgres
 
 log "Ensuring NetBox database and role exist"
-psql_admin postgres \\
-  -v db_user="$DB_USER" \\
-  -v db_password="$DB_PASSWORD" \\
+psql_admin postgres \
+  -v db_user="$DB_USER" \
+  -v db_password="$DB_PASSWORD" \
   -v db_name="$DB_NAME" <<'SQL'
 DO
 $$
@@ -346,7 +346,7 @@ END;
 $$ LANGUAGE plpgsql;
 SQL
 
-psql_admin "$DB_NAME" \\
+psql_admin "$DB_NAME" \
   -c "GRANT ALL PRIVILEGES ON DATABASE \"$DB_NAME\" TO \"$DB_USER\";" >/dev/null
 
 log "Starting Redis"
