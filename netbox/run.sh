@@ -307,7 +307,7 @@ POSTGRES_STARTED=1
 wait_for_postgres
 
 log "Ensuring NetBox database and role exist"
-gosu postgres psql -v ON_ERROR_STOP=1 -d postgres \\
+PGHOST=127.0.0.1 PGPORT=5432 PGDATABASE=postgres PGUSER=postgres gosu postgres psql -v ON_ERROR_STOP=1 -d postgres \\
   -v db_user="$DB_USER" \\
   -v db_password="$DB_PASSWORD" \\
   -v db_name="$DB_NAME" <<'SQL'
@@ -327,7 +327,7 @@ END;
 $$ LANGUAGE plpgsql;
 SQL
 
-gosu postgres psql -v ON_ERROR_STOP=1 -d "$DB_NAME" -c "GRANT ALL PRIVILEGES ON DATABASE \"$DB_NAME\" TO \"$DB_USER\";" >/dev/null
+PGHOST=127.0.0.1 PGPORT=5432 PGDATABASE="$DB_NAME" PGUSER=postgres gosu postgres psql -v ON_ERROR_STOP=1 -d "$DB_NAME" -c "GRANT ALL PRIVILEGES ON DATABASE \"$DB_NAME\" TO \"$DB_USER\";" >/dev/null
 
 log "Starting Redis"
 cat > "$REDIS_CONF" <<CONF
