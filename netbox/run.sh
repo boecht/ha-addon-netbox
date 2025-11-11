@@ -25,6 +25,23 @@ wait_for_postgres() {
   done
 }
 
+psql_admin() {
+  local database="$1"
+  shift
+  env -i \
+    PATH="$PATH" \
+    LANG="${LANG:-C.UTF-8}" \
+    LC_ALL="${LC_ALL:-C.UTF-8}" \
+    HOME=/var/lib/postgresql \
+    PGHOST=127.0.0.1 \
+    PGHOSTADDR=127.0.0.1 \
+    PGPORT=5432 \
+    PGDATABASE="$database" \
+    PGUSER=postgres \
+    PSQLRC=/dev/null \
+    gosu postgres psql -h 127.0.0.1 -p 5432 -U postgres -v ON_ERROR_STOP=1 -d "$database" "$@"
+}
+
 detect_host_timezone() {
   if [[ -n "${TZ:-}" ]]; then
     printf '%s' "$TZ"
@@ -309,7 +326,7 @@ POSTGRES_STARTED=1
 wait_for_postgres
 
 log "Ensuring NetBox database and role exist"
-gosu postgres psql -h 127.0.0.1 -p 5432 -U postgres -v ON_ERROR_STOP=1 -d postgres \\
+psql_admin postgres \\
   -v db_user="$DB_USER" \\
   -v db_password="$DB_PASSWORD" \\
   -v db_name="$DB_NAME" <<'SQL'
@@ -329,7 +346,7 @@ END;
 $$ LANGUAGE plpgsql;
 SQL
 
-gosu postgres psql -h 127.0.0.1 -p 5432 -U postgres -v ON_ERROR_STOP=1 -d "$DB_NAME" \\
+psql_admin "$DB_NAME" \\
   -c "GRANT ALL PRIVILEGES ON DATABASE \"$DB_NAME\" TO \"$DB_USER\";" >/dev/null
 
 log "Starting Redis"
