@@ -19,7 +19,7 @@ ports_description:
 watchdog: "http://[HOST]:[PORT:8000]/health/"
 ingress: false
 host_network: false
-apparmor: true
+apparmor: false
 map:
   - share:rw
   - config:rw
