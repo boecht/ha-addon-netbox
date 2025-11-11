@@ -1,46 +1,12 @@
-# NetBox Add-on Development Notes
+# NetBox for Home Assistant
 
-This directory contains the Home Assistant add-on definition for NetBox. Key files:
+Bring NetBox’s full IPAM/DCIM toolkit to your Home Assistant instance with a single add-on. This package preloads the upstream NetBox Docker image together with the services it needs (PostgreSQL + Redis), so you can keep track of racks, prefixes, VLANs, and circuits right next to the rest of your smart-home stack.
 
-- `Dockerfile` – extends the upstream NetBox container and installs PostgreSQL, Redis, gosu, jq, and tini.
-- `run.sh` – orchestrates PostgreSQL initialization, Redis startup, and the upstream NetBox entrypoint.
-- `config.yaml` / `build.yaml` – Supervisor metadata and build configuration.
-- `DOCS.md` – user-facing instructions surfaced inside Home Assistant.
+## Highlights
 
-## Local Testing
+- **Self-contained stack** – PostgreSQL, Redis, NetBox, and housekeeping jobs run inside one managed container.
+- **Secure by default** – database credentials, Django secrets, and API tokens are auto-generated and stored in `/data`.
+- **Ready for updates** – pinned upstream NetBox image and GitHub Actions workflow produce multi-arch images for `amd64` and `aarch64`.
+- **Supervisor friendly** – supports snapshots, watchdog, persistent storage, and the Home Assistant UI lifecycle controls.
 
-1. Build the add-on image locally:
-
-   ```bash
-   docker build -t ha-netbox-dev -f netbox/Dockerfile netbox
-   ```
-
-2. Run it with a bind mount for `/data` to persist the embedded PostgreSQL cluster:
-
-   ```bash
-   docker run --rm -it \
-     -v $(pwd)/sandbox-data:/data \
-     -p 8000:8000 \
-     -e CONFIG_PATH=/data/options.json \
-     ha-netbox-dev
-   ```
-
-   Craft an `options.json` file that mirrors the Supervisor options schema.
-
-## Updating the Base Image
-
-- Edit `netbox/build.yaml` to bump `ghcr.io/netbox-community/netbox:<tag>`.
-- Mention the upstream NetBox + NetBox Docker versions in `CHANGELOG.md`.
-- Run the GitHub Actions workflow or `docker buildx bake` locally to push multi-arch images.
-
-## Code Style
-
-- Bash scripts are `set -euo pipefail` and prefer helper functions over inline subshells.
-- Keep all persistent data under `/data` so Supervisor backups pick it up.
-- Keep secrets in files within `/data` and avoid logging their values.
-
-## TODOs / Ideas
-
-- Support optional external PostgreSQL/Redis connections (skip embedded services when disabled).
-- Add scripted NetBox backup/restore helpers.
-- Integrate TLS termination via Caddy or Traefik for direct WAN exposure.
+Use the *Documentation* tab for setup details, config examples, and troubleshooting tips. When you’re ready, click **Start** to launch NetBox, then open port `8000` (or Home Assistant ingress) to begin managing your network inventory.
