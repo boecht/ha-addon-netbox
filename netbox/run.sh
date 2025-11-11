@@ -8,8 +8,46 @@ NETBOX_DATA_DIR=${NETBOX_DATA_DIR:-/data/netbox}
 DB_SOCKET_DIR=/run/postgresql
 NETBOX_USER=${NETBOX_USER:-netbox}
 REDIS_CONF=/tmp/redis-netbox.conf
+DEBUG=${DEBUG:-${ADDON_DEBUG:-true}}
 
-unset PGDATABASE PGHOST PGPORT PGUSER PGSERVICE PGSERVICEFILE PGSSLMODE PGOPTIONS || true
+log() {
+  printf '[%s] %s\n' "$(date --iso-8601=seconds)" "$1"
+}
+
+fatal() {
+  log "ERROR: $1"
+  exit 1
+}
+
+log_debug() {
+  local flag="${DEBUG,,}"
+  if [[ "$flag" == "true" || "$flag" == "1" || "$flag" == "yes" ]]; then
+    log "DEBUG: $1"
+  fi
+}
+
+existing_pg_env=$(env | grep '^PG' || true)
+if [[ -n "$existing_pg_env" ]]; then
+  log_debug "Inherited PG environment before cleanup:\n$existing_pg_env"
+else
+  log_debug "No inherited PG* variables detected before cleanup."
+fi
+
+unset PGDATABASE PGHOST PGPORT PGUSER PGSERVICE PGSERVICEFILE PGSSLMODE PGOPTIONS PGPASSFILE || true
+log_debug "PG* environment after cleanup: $(env | grep '^PG' || echo '<none>')"
+
+SCRIPT_SOURCE=$(readlink -f "${BASH_SOURCE[0]:-$0}" 2>/dev/null || echo "$0")
+if [[ -f "$SCRIPT_SOURCE" ]]; then
+  SCRIPT_SHA=$(sha256sum "$SCRIPT_SOURCE" | awk '{print $1}')
+  log_debug "Addon run script: $SCRIPT_SOURCE (sha256=$SCRIPT_SHA)"
+fi
+
+if command -v psql >/dev/null 2>&1; then
+  log_debug "psql binary: $(command -v psql)"
+  log_debug "psql version: $(psql --version 2>&1)"
+else
+  log "WARNING: psql binary not found in PATH=$PATH"
+fi
 
 wait_for_postgres() {
   local interval=${DB_WAIT_TIMEOUT:-1}
@@ -29,20 +67,29 @@ psql_admin() {
   local database="$1" uri
   shift
   uri="postgresql://postgres@127.0.0.1:5432/${database}"
-  log "psql_admin: database=${database}"
-  env -i \
-    PATH="$PATH" \
-    LANG="${LANG:-C.UTF-8}" \
-    LC_ALL="${LC_ALL:-C.UTF-8}" \
-    HOME=/var/lib/postgresql \
-    PGHOST=127.0.0.1 \
-    PGHOSTADDR=127.0.0.1 \
-    PGPORT=5432 \
-    PGDATABASE="$database" \
-    PGUSER=postgres \
-    PGSSLMODE=disable \
-    PSQLRC=/dev/null \
-    gosu postgres psql "$uri" -v ON_ERROR_STOP=1 "$@"
+  log_debug "psql_admin: database=${database}, args=$*"
+  if ! env -i \
+      PATH="$PATH" \
+      LANG="${LANG:-C.UTF-8}" \
+      LC_ALL="${LC_ALL:-C.UTF-8}" \
+      HOME=/var/lib/postgresql \
+      PGHOST=127.0.0.1 \
+      PGHOSTADDR=127.0.0.1 \
+      PGPORT=5432 \
+      PGDATABASE="$database" \
+      PGUSER=postgres \
+      PGAPPNAME="ha-addon-netbox" \
+      PGSSLMODE=disable \
+      PGSERVICE= \
+      PGSERVICEFILE=/dev/null \
+      PGPASSFILE=/dev/null \
+      PGCONNECT_TIMEOUT=10 \
+      PSQLRC=/dev/null \
+      gosu postgres psql "$uri" -v ON_ERROR_STOP=1 "$@"
+  then
+    log "ERROR: psql_admin failed for database=${database} (args: $*)"
+    return 1
+  fi
 }
 
 detect_host_timezone() {
@@ -64,15 +111,6 @@ detect_host_timezone() {
     fi
   fi
   printf '%s' 'Etc/UTC'
-}
-
-log() {
-  printf '[%s] %s\n' "$(date --iso-8601=seconds)" "$1"
-}
-
-fatal() {
-  log "ERROR: $1"
-  exit 1
 }
 
 read_option() {
@@ -268,6 +306,7 @@ METRICS_ENABLED=$(read_option "enable_prometheus" "false")
 PLUGINS=$(read_plugins)
 DB_WAIT_TIMEOUT=${DB_WAIT_TIMEOUT:-1}
 MAX_DB_WAIT_TIME=${MAX_DB_WAIT_TIME:-30}
+log_debug "Database config: DB_NAME=$DB_NAME DB_USER=$DB_USER PGDATA=$PGDATA"
 
 add_pg_bin_dirs_to_path
 
