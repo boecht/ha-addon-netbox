@@ -1,0 +1,11 @@
+{
+  "name": "NetBox Home Assistant Add-on Repository",
+  "url": "https://github.com/boecht/ha-addon-netbox",
+  "maintainer": "Boecht Labs <maintainer@example.com>",
+  "addons": [
+    {
+      "slug": "netbox",
+      "name": "NetBox"
+    }
+  ]
+}

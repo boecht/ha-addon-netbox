@@ -1,0 +1,62 @@
+name: "NetBox"
+version: "0.1.0"
+slug: "netbox"
+description: >-
+  NetBox bundled with PostgreSQL and Redis for Home Assistant power users.
+arch:
+  - amd64
+  - aarch64
+url: "https://github.com/boecht/ha-addon-netbox"
+startup: services
+boot: auto
+init: false
+panel_icon: mdi:server-network
+image: "ghcr.io/boecht/ha-addon-netbox/netbox-{arch}"
+ports:
+  8000/tcp: 8000
+ports_description:
+  8000/tcp: NetBox web UI
+watchdog: "http://[HOST]:[PORT:8000]/health/"
+ingress: false
+host_network: false
+apparmor: true
+map:
+  - type: share
+    read_only: false
+  - type: config
+    read_only: false
+options:
+  db_name: netbox
+  db_user: netbox
+  db_password: null
+  superuser_username: admin
+  superuser_email: admin@example.com
+  superuser_password: null
+  superuser_api_token: null
+  secret_key: null
+  allowed_hosts:
+    - homeassistant.local
+    - localhost
+  time_zone: Etc/UTC
+  housekeeping_interval: 3600
+  enable_prometheus: false
+  plugins: []
+schema:
+  db_name: str
+  db_user: str
+  db_password: password?
+  superuser_username: str
+  superuser_email: email
+  superuser_password: password
+  superuser_api_token: password?
+  secret_key: password?
+  allowed_hosts:
+    - str
+  time_zone: str
+  housekeeping_interval:
+    type: integer
+    minimum: 300
+    maximum: 86400
+  enable_prometheus: bool
+  plugins:
+    - str

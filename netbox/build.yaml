@@ -1,0 +1,9 @@
+build_from:
+  amd64: ghcr.io/netbox-community/netbox:v4.4.3-3.4.1
+  aarch64: ghcr.io/netbox-community/netbox:v4.4.3-3.4.1
+args:
+  BUILD_FROM: ghcr.io/netbox-community/netbox:v4.4.3-3.4.1
+labels:
+  "org.opencontainers.image.title": "NetBox Home Assistant Add-on"
+  "org.opencontainers.image.source": "https://github.com/boecht/ha-addon-netbox"
+  "org.opencontainers.image.licenses": "Apache-2.0"
