@@ -9,6 +9,20 @@ DB_SOCKET_DIR=/run/postgresql
 NETBOX_USER=${NETBOX_USER:-netbox}
 REDIS_CONF=/tmp/redis-netbox.conf
 
+wait_for_postgres() {
+  local interval=${DB_WAIT_TIMEOUT:-1}
+  local max=${MAX_DB_WAIT_TIME:-30}
+  local waited=0
+  while ! pg_isready -h 127.0.0.1 -p 5432 >/dev/null 2>&1; do
+    if (( waited >= max )); then
+      fatal "PostgreSQL did not become ready within ${max}s"
+    fi
+    log "Waiting for PostgreSQL (${waited}s/${max}s)"
+    sleep "$interval"
+    waited=$((waited + interval))
+  done
+}
+
 PATH="$(dirname "$(command -v pg_ctl)"):$PATH"
 export PATH
 
@@ -92,6 +106,89 @@ read_plugins() {
   printf '%s' "$plugins"
 }
 
+netbox_manage() {
+  (cd /opt/netbox/netbox && /opt/netbox/venv/bin/python3 manage.py "$@")
+}
+
+ensure_superuser_exists() {
+  netbox_manage shell --interface python <<'PY'
+from django.contrib.auth import get_user_model
+User = get_user_model()
+username = "admin"
+email = "admin@example.com"
+password = "admin"
+user, created = User.objects.get_or_create(username=username, defaults={"email": email})
+if created:
+    user.set_password(password)
+    user.save()
+    print("✅ Created default NetBox admin user (admin/admin)")
+PY
+}
+
+clear_reset_flag() {
+  if [[ ! -f "$CONFIG_PATH" ]]; then
+    return
+  fi
+  local tmp
+  tmp=$(mktemp)
+  if jq '.reset_superuser = false' "$CONFIG_PATH" > "$tmp"; then
+    mv "$tmp" "$CONFIG_PATH"
+  else
+    rm -f "$tmp"
+    log "Failed to clear reset_superuser flag; please toggle it off manually."
+  fi
+}
+
+reset_superuser_if_requested() {
+  local flag="${RESET_SUPERUSER,,}"
+  if [[ "$flag" != "true" ]]; then
+    return
+  fi
+  log "Resetting NetBox admin credentials to admin/admin"
+  netbox_manage shell --interface python <<'PY'
+from django.contrib.auth import get_user_model
+User = get_user_model()
+username = "admin"
+email = "admin@example.com"
+password = "admin"
+user, _ = User.objects.get_or_create(username=username)
+user.email = email
+user.is_active = True
+user.set_password(password)
+user.save()
+print("✅ NetBox admin credentials reset; please change them inside NetBox.")
+PY
+  clear_reset_flag
+}
+
+warn_default_token() {
+  netbox_manage shell --interface python <<'PY'
+from users.models import Token
+try:
+    Token.objects.get(key="0123456789abcdef0123456789abcdef01234567")
+except Token.DoesNotExist:
+    pass
+else:
+    print("⚠️  Warning: default admin API token still present; delete it via the NetBox UI.")
+PY
+}
+
+run_housekeeping_if_needed() {
+  if netbox_manage migrate --check >/dev/null 2>&1; then
+    return
+  fi
+  log "Applying database migrations"
+  netbox_manage migrate --no-input
+  log "Running trace_paths"
+  netbox_manage trace_paths --no-input
+  log "Removing stale content types"
+  netbox_manage remove_stale_contenttypes --no-input
+  log "Removing expired sessions"
+  netbox_manage clearsessions
+  log "Building search index (lazy)"
+  netbox_manage reindex --lazy
+}
+
 ensure_directories() {
   mkdir -p "$PGDATA" "$REDIS_DATA_DIR" "$NETBOX_DATA_DIR"/media "$NETBOX_DATA_DIR"/reports "$NETBOX_DATA_DIR"/scripts
 }
@@ -102,13 +199,10 @@ chown -R postgres:postgres "$PGDATA" "$DB_SOCKET_DIR"
 chown -R redis:redis "$REDIS_DATA_DIR"
 chown -R "$NETBOX_USER":"$NETBOX_USER" "$NETBOX_DATA_DIR"
 
-DB_NAME=$(read_option "db_name" "netbox")
-DB_USER=$(read_option "db_user" "netbox")
-DB_PASSWORD=$(ensure_secret "$(read_option "db_password" "")" "/data/.db_password")
-SUPERUSER_USERNAME=$(read_option "superuser_username" "admin")
-SUPERUSER_EMAIL=$(read_option "superuser_email" "admin@example.com")
-SUPERUSER_PASSWORD=$(read_option "superuser_password" "")
-SUPERUSER_TOKEN=$(ensure_secret "$(read_option "superuser_api_token" "")" "/data/.superuser_token" 64)
+DB_NAME="netbox"
+DB_USER="netbox"
+DB_PASSWORD=$(ensure_secret "" "/data/.db_password")
+RESET_SUPERUSER=$(read_option "reset_superuser" "false")
 SECRET_KEY=$(ensure_secret "$(read_option "secret_key" "")" "/data/.secret_key" 64)
 ALLOWED_HOSTS=$(read_allowed_hosts)
 HOST_TZ=$(detect_host_timezone)
@@ -116,10 +210,8 @@ TIMEZONE="$HOST_TZ"
 HOUSEKEEPING_INTERVAL=$(read_option "housekeeping_interval" "3600")
 METRICS_ENABLED=$(read_option "enable_prometheus" "false")
 PLUGINS=$(read_plugins)
-
-if [[ -z "$SUPERUSER_PASSWORD" || "$SUPERUSER_PASSWORD" == "null" ]]; then
-  fatal "superuser_password is required. Configure the add-on options before starting."
-fi
+DB_WAIT_TIMEOUT=${DB_WAIT_TIMEOUT:-1}
+MAX_DB_WAIT_TIME=${MAX_DB_WAIT_TIME:-30}
 
 PG_BIN_DIR=$(dirname "$(command -v initdb)")
 INITDB="$PG_BIN_DIR/initdb"
@@ -162,6 +254,7 @@ trap cleanup EXIT
 log "Starting PostgreSQL"
 gosu postgres "$PG_CTL" -D "$PGDATA" -o "-c config_file=$PGDATA/postgresql.conf" -w start
 POSTGRES_STARTED=1
+wait_for_postgres
 
 log "Ensuring NetBox database and role exist"
 gosu postgres psql -v ON_ERROR_STOP=1 \\
@@ -230,12 +323,9 @@ export CACHE_REDIS_SSL=false
 
 export SECRET_KEY="$SECRET_KEY"
 export ALLOWED_HOSTS="$ALLOWED_HOSTS"
-export SUPERUSER_NAME="$SUPERUSER_USERNAME"
-export SUPERUSER_EMAIL="$SUPERUSER_EMAIL"
-export SUPERUSER_PASSWORD="$SUPERUSER_PASSWORD"
-export DJANGO_SUPERUSER_PASSWORD="$SUPERUSER_PASSWORD"
-export SUPERUSER_API_TOKEN="$SUPERUSER_TOKEN"
-export DB_WAIT_TIMEOUT=60
+export SKIP_SUPERUSER=true
+export DB_WAIT_TIMEOUT=1
+export MAX_DB_WAIT_TIME=30
 export METRICS_ENABLED="$METRICS_ENABLED"
 export HOUSEKEEPING_INTERVAL="$HOUSEKEEPING_INTERVAL"
 export PLUGINS="$PLUGINS"
@@ -243,6 +333,11 @@ export TZ="$TIMEZONE"
 export MEDIA_ROOT="$NETBOX_DATA_DIR/media"
 export REPORTS_ROOT="$NETBOX_DATA_DIR/reports"
 export SCRIPTS_ROOT="$NETBOX_DATA_DIR/scripts"
+
+run_housekeeping_if_needed
+ensure_superuser_exists
+reset_superuser_if_requested
+warn_default_token
 
 log "Launching NetBox via upstream entrypoint"
 exec "$@"

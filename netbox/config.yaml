@@ -10,7 +10,7 @@ url: "https://github.com/boecht/ha-addon-netbox"
 startup: services
 boot: auto
 init: false
-panel_icon: mdi:server-network
+panel_icon: mdi:table-network
 image: "ghcr.io/boecht/ha-addon-netbox/netbox-{arch}"
 ports:
   8000/tcp: 8000
@@ -26,18 +26,16 @@ map:
   - type: config
     read_only: false
 options:
-  superuser_username: admin
-  superuser_email: admin@example.com
-  superuser_password: admin
+  secret_key: null
+  reset_superuser: false
   allowed_hosts:
     - "*"
   housekeeping_interval: 3600
   enable_prometheus: false
   plugins: []
 schema:
-  superuser_username: str
-  superuser_email: email
-  superuser_password: password
+  secret_key: password?
+  reset_superuser: bool
   allowed_hosts:
     type: list
     items:

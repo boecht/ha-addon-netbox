@@ -1,4 +1,4 @@
-ARG BUILD_FROM=ghcr.io/netbox-community/netbox:v4.4.3-3.4.1
+ARG BUILD_FROM=ghcr.io/netbox-community/netbox:v4.4.5-3.4.2
 FROM ${BUILD_FROM}
 
 USER root
