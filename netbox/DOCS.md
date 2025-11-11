@@ -6,9 +6,9 @@ NetBox is the open-source IP address management (IPAM) and data-center infrastru
 
 1. Add this repository (`https://github.com/boecht/ha-addon-netbox`) to **Settings → Add-ons → Add-on Store → ⋮ → Repositories**.
 2. Open **NetBox** in the store and click **Install**.
-3. Switch to the **Configuration** tab and set a strong `superuser_password` (required). Adjust other options if needed.
+3. Review the **Configuration** tab. The defaults work for most installs, but you can tailor the options below before first boot.
 4. Hit **Start**. The first boot initializes PostgreSQL, Redis, runs NetBox migrations, and reconciles the admin user. This can take a few minutes on ARM devices.
-5. Open the Web UI on `http://<home-assistant-host>:8000/` (or expose via Ingress/reverse proxy) and sign in with the superuser credentials you configured.
+5. Open the Web UI on `http://<home-assistant-host>:8000/` (or expose via Ingress/reverse proxy) and sign in with the default admin credentials (`admin` / `admin`). Change them immediately inside NetBox.
 
 ## Configuration
 
@@ -16,7 +16,7 @@ Only a handful of options are exposed in the add-on UI. Everything else is gener
 
 | Option                  | Required | Description                                                                                                                              |
 | ----------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `reset_superuser`       | ➖       | Toggle to force the NetBox admin account back to `admin` / `admin@example.com` / `admin`. The flag resets itself after a successful run. |
+| `reset_superuser`       | ➖       | Toggle to force the NetBox admin account back to `admin` / `admin` / `admin@example.com`. The flag resets itself after a successful run. |
 | `allowed_hosts`         | ➖       | Defaults to `*` (all hosts). Override with explicit hostnames/IPs if you need stricter enforcement.                                      |
 | `housekeeping_interval` | ➖       | Seconds between NetBox housekeeping runs (default `3600`).                                                                               |
 | `enable_prometheus`     | ➖       | When `true`, enables NetBox’s Prometheus metrics endpoint at `/metrics`.                                                                 |
@@ -57,7 +57,7 @@ Use Home Assistant snapshots or copy `/addon_local/netbox/` to back up NetBox. R
 | Symptom                                 | Suggested action                                                                                                                                          |
 | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Locked out of NetBox admin account      | Toggle `reset_superuser`, restart the add-on once, then log in with `admin` / `admin`.                                                                    |
-| Web UI loads but login fails            | Ensure the `superuser_username`/`password` options match what you expect; the entrypoint resets the Django superuser on each boot.                        |
+| Web UI loads but login fails            | Confirm you’re using the NetBox admin credentials you set inside the Web UI. If in doubt, toggle `reset_superuser` and restart once to restore `admin` / `admin`. |
 | “Database connection refused” errors    | Check Supervisor logs for PostgreSQL initialization messages. Deleting `/data/postgres` forces a re-init (you’ll lose data).                              |
 | Watchdog keeps restarting the add-on    | Visit `/health/` in your browser. If it returns anything but `200 OK`, inspect `/config/netbox.log` (Supervisor Logs tab) for migration or plugin errors. |
 | Need to expose NetBox via HTTPS/Ingress | Place a reverse proxy (e.g., Nginx Proxy Manager add-on) in front of port 8000 or configure HA’s Ingress with your own auth.                              |
