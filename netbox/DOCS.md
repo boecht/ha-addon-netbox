@@ -16,18 +16,16 @@ Only a handful of options are exposed in the add-on UI. Everything else is gener
 
 | Option | Required | Description |
 | ------ | -------- | ----------- |
-| `superuser_username` | ✅ | Django superuser name kept in sync on each boot (default `admin`). |
-| `superuser_email` | ✅ | Contact address shown in NetBox. |
-| `superuser_password` | ✅ | Password for the NetBox superuser (defaults to `admin`). Change it as soon as you log in. |
+| `reset_superuser` | ➖ | Toggle to force the NetBox admin account back to `admin` / `admin@example.com` / `admin`. The flag resets itself after a successful run. |
 | `allowed_hosts` | ➖ | Defaults to `*` (all hosts). Override with explicit hostnames/IPs if you need stricter enforcement. |
 | `housekeeping_interval` | ➖ | Seconds between NetBox housekeeping runs (default `3600`). |
 | `enable_prometheus` | ➖ | When `true`, enables NetBox’s Prometheus metrics endpoint at `/metrics`. |
 | `plugins` | ➖ | List of Python module names for NetBox plugins that are already baked into the upstream image. |
 
-### Advanced/implicit settings
+### Credentials & secrets
 
 - Database name/user/password, Redis password, Django secret key, and API token are generated on first boot and saved under `/data`. You normally never need to change them.
-- To override the generated secrets, stop the add-on, edit `/addon_configs/<slug>/options.json`, and restart. Be careful—changing database credentials after NetBox has initialized can render the instance unusable.
+- To override the generated secrets, stop the add-on, edit `/addon_configs/netbox/options.json`, and restart. Be careful—changing database credentials after NetBox has initialized can render the instance unusable.
 
 ## Data locations
 
@@ -52,12 +50,13 @@ Use Home Assistant snapshots or copy `/addon_local/netbox/` to back up NetBox. R
 
 - The add-on pins the NetBox Docker tag for reproducibility. When a new NetBox release ships, we bump `netbox/config.yaml` and rebuild both `netbox-amd64` and `netbox-aarch64` images via GitHub Actions.
 - To upgrade, install the new add-on version from the Store. The entrypoint runs migrations automatically before serving traffic.
+- On every start the add-on waits for PostgreSQL to become available, applies any pending NetBox migrations, and runs the standard housekeeping commands before launching the services.
 
 ## Troubleshooting
 
 | Symptom | Suggested action |
 | ------- | ---------------- |
-| Add-on refuses to start and logs “superuser_password is required” | Set a password on the Configuration tab, save, and start again. |
+| Locked out of NetBox admin account | Toggle `reset_superuser`, restart the add-on once, then log in with `admin` / `admin`. |
 | Web UI loads but login fails | Ensure the `superuser_username`/`password` options match what you expect; the entrypoint resets the Django superuser on each boot. |
 | “Database connection refused” errors | Check Supervisor logs for PostgreSQL initialization messages. Deleting `/data/postgres` forces a re-init (you’ll lose data). |
 | Watchdog keeps restarting the add-on | Visit `/health/` in your browser. If it returns anything but `200 OK`, inspect `/config/netbox.log` (Supervisor Logs tab) for migration or plugin errors. |

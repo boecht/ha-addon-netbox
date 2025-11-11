@@ -1,5 +1,5 @@
 {
-  "name": "NetBox Add-on",
+  "name": "NetBox",
   "url": "https://github.com/boecht/ha-addon-netbox",
   "maintainer": "boecht <https://github.com/boecht>",
   "addons": [

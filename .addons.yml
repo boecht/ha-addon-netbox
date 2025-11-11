@@ -1,4 +1,0 @@
-addons:
-  netbox:
-    folder: netbox
-    name: NetBox
