@@ -21,10 +21,8 @@ ingress: false
 host_network: false
 apparmor: true
 map:
-  - type: share
-    read_only: false
-  - type: config
-    read_only: false
+  - share:rw
+  - config:rw
 options:
   db_name: netbox
   db_user: netbox
@@ -51,12 +49,14 @@ schema:
   superuser_api_token: password?
   secret_key: password?
   allowed_hosts:
-    - str
+    type: list
+    items:
+      - type: str
   time_zone: str
   housekeeping_interval:
-    type: integer
-    minimum: 300
-    maximum: 86400
+    type: int
   enable_prometheus: bool
   plugins:
-    - str
+    type: list
+    items:
+      - type: str
