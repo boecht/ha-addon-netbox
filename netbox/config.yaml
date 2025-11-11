@@ -28,11 +28,9 @@ map:
 options:
   superuser_username: admin
   superuser_email: admin@example.com
-  superuser_password: null
+  superuser_password: admin
   allowed_hosts:
-    - homeassistant.local
-    - localhost
-  time_zone: null
+    - "*"
   housekeeping_interval: 3600
   enable_prometheus: false
   plugins: []
@@ -41,9 +39,12 @@ schema:
   superuser_email: email
   superuser_password: password
   allowed_hosts:
-    - str
-  time_zone: str?
+    type: list
+    items:
+      - type: str
   housekeeping_interval: int(300,86400)
   enable_prometheus: bool
   plugins:
-    - str
+    type: list
+    items:
+      - type: str

@@ -14,22 +14,23 @@ export PATH
 
 detect_host_timezone() {
   if [[ -n "${TZ:-}" ]]; then
-    printf %s "$TZ"
+    printf '%s' "$TZ"
     return
   fi
   if [[ -f /etc/timezone ]]; then
-    tr -d n < /etc/timezone
+    tr -d '
+' < /etc/timezone
     return
   fi
   if [[ -L /etc/localtime ]]; then
     local target
     target=$(readlink -f /etc/localtime || true)
     if [[ -n "$target" ]]; then
-      printf %s "${target#*/zoneinfo/}"
+      printf '%s' "${target#*/zoneinfo/}"
       return
     fi
   fi
-  printf %s Etc/UTC
+  printf '%s' 'Etc/UTC'
 }
 
 log() {
@@ -69,14 +70,15 @@ ensure_secret() {
 }
 
 read_allowed_hosts() {
-  local hosts=""
+  local configured=""
   if [[ -s "$CONFIG_PATH" ]]; then
-    hosts=$(jq -r '.allowed_hosts // [] | map(select(. != null and . != "")) | join(",")' "$CONFIG_PATH" 2>/dev/null || true)
+    configured=$(jq -r '.allowed_hosts // [] | map(select(. != null and . != "")) | join(",")' "$CONFIG_PATH" 2>/dev/null || true)
   fi
-  if [[ -z "$hosts" ]]; then
-    hosts="homeassistant.local,localhost,127.0.0.1"
+  if [[ -z "$configured" ]]; then
+    printf '*'
+  else
+    printf '%s' "$configured"
   fi
-  printf '%s' "$hosts"
 }
 
 read_plugins() {
@@ -110,7 +112,7 @@ SUPERUSER_TOKEN=$(ensure_secret "$(read_option "superuser_api_token" "")" "/data
 SECRET_KEY=$(ensure_secret "$(read_option "secret_key" "")" "/data/.secret_key" 64)
 ALLOWED_HOSTS=$(read_allowed_hosts)
 HOST_TZ=$(detect_host_timezone)
-TIMEZONE=$(read_option "time_zone" "$HOST_TZ")
+TIMEZONE="$HOST_TZ"
 HOUSEKEEPING_INTERVAL=$(read_option "housekeeping_interval" "3600")
 METRICS_ENABLED=$(read_option "enable_prometheus" "false")
 PLUGINS=$(read_plugins)
