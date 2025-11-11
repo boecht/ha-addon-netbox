@@ -9,6 +9,6 @@ Bring NetBox’s full IPAM/DCIM toolkit to your Home Assistant instance with a s
 - **Ready for updates** – pinned upstream NetBox image and GitHub Actions workflow produce multi-arch images for `amd64` and `aarch64`.
 - **Supervisor friendly** – supports snapshots, watchdog, persistent storage, and the Home Assistant UI lifecycle controls.
 
-Use the *Documentation* tab for setup details, config examples, and troubleshooting tips. When you’re ready, click **Start** to launch NetBox, then open port `8000` (or Home Assistant ingress) to begin managing your network inventory.
+Use the _Documentation_ tab for setup details, config examples, and troubleshooting tips. When you’re ready, click **Start** to launch NetBox, then open port `8000` (or Home Assistant ingress) to begin managing your network inventory.
 
 Default credentials are `admin` / `admin` and should be changed immediately in the NetBox GUI. If you ever lose access, flip the **Reset Admin** toggle in the add-on configuration and restart once to restore those defaults.
