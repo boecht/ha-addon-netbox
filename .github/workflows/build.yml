@@ -60,7 +60,7 @@ jobs:
             ${{ env.REGISTRY }}/boecht/ha-addon-netbox/netbox-${{ matrix.arch_slug }}:${{ steps.version.outputs.version }}
             ${{ env.REGISTRY }}/boecht/ha-addon-netbox/netbox-${{ matrix.arch_slug }}:latest
           build-args: |
-            BUILD_FROM=ghcr.io/netbox-community/netbox:v4.4.3-3.4.1
+            BUILD_FROM=ghcr.io/netbox-community/netbox:v4.4.5-3.4.2
 
       - name: Upload artifact (PR builds)
         if: github.event_name == 'pull_request' && matrix.arch_slug == 'amd64'
