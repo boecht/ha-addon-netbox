@@ -23,9 +23,6 @@ wait_for_postgres() {
   done
 }
 
-PATH="$(dirname "$(command -v pg_ctl)"):$PATH"
-export PATH
-
 detect_host_timezone() {
   if [[ -n "${TZ:-}" ]]; then
     printf '%s' "$TZ"
@@ -213,9 +210,21 @@ PLUGINS=$(read_plugins)
 DB_WAIT_TIMEOUT=${DB_WAIT_TIMEOUT:-1}
 MAX_DB_WAIT_TIME=${MAX_DB_WAIT_TIME:-30}
 
-PG_BIN_DIR=$(dirname "$(command -v initdb)")
+PG_CTL_PATH=$(command -v pg_ctl || true)
+if [[ -z "$PG_CTL_PATH" ]]; then
+  fatal "pg_ctl not found in PATH; ensure PostgreSQL binaries are installed."
+fi
+
+PG_BIN_DIR=$(dirname "$PG_CTL_PATH")
+PATH="$PG_BIN_DIR:$PATH"
+export PATH
+
 INITDB="$PG_BIN_DIR/initdb"
-PG_CTL="$PG_BIN_DIR/pg_ctl"
+if [[ ! -x "$INITDB" ]]; then
+  fatal "initdb not found alongside pg_ctl at $INITDB"
+fi
+
+PG_CTL="$PG_CTL_PATH"
 
 mkdir -p "$DB_SOCKET_DIR"
 chown postgres:postgres "$DB_SOCKET_DIR"
