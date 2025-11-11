@@ -26,8 +26,10 @@ wait_for_postgres() {
 }
 
 psql_admin() {
-  local database="$1"
+  local database="$1" uri
   shift
+  uri="postgresql://postgres@127.0.0.1:5432/${database}"
+  log "psql_admin: database=${database}"
   env -i \
     PATH="$PATH" \
     LANG="${LANG:-C.UTF-8}" \
@@ -38,8 +40,9 @@ psql_admin() {
     PGPORT=5432 \
     PGDATABASE="$database" \
     PGUSER=postgres \
+    PGSSLMODE=disable \
     PSQLRC=/dev/null \
-    gosu postgres psql -h 127.0.0.1 -p 5432 -U postgres -v ON_ERROR_STOP=1 -d "$database" "$@"
+    gosu postgres psql "$uri" -v ON_ERROR_STOP=1 "$@"
 }
 
 detect_host_timezone() {
