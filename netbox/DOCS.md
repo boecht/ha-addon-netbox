@@ -1,13 +1,6 @@
 # Home Assistant Add-on: NetBox
 
-NetBox is the open-source IP address management (IPAM) and data-center infrastructure management (DCIM) platform. This add-on bundles the upstream NetBox Docker image together with PostgreSQL, Redis, housekeeping jobs, and a health check so you can keep your network inventory close to Home Assistant.
-
-## Highlights
-
-- Pinned upstream image (`ghcr.io/netbox-community/netbox:v4.4.3-3.4.1`) with automatic migrations.
-- PostgreSQL and Redis run side-by-side in the same managed container; all data lives under `/data` for easy snapshots.
-- Secrets (database password, Django secret key, API tokens) are auto-generated and persisted on first start.
-- Supervisor-friendly: works with snapshots, watchdog, start-on-boot, and the standard logs tab.
+NetBox is the open-source IP address management (IPAM) and data-center infrastructure management (DCIM) platform. This add-on bundles the upstream NetBox Docker image together with PostgreSQL, Redis, housekeeping jobs, and a health check so you can keep your network inventory close to Home Assistant—all while pinning the upstream version, auto-generating secrets, and storing everything under `/data` for easy snapshots.
 
 ## Installation
 
@@ -25,9 +18,8 @@ Only a handful of options are exposed in the add-on UI. Everything else is gener
 | ------ | -------- | ----------- |
 | `superuser_username` | ✅ | Django superuser name kept in sync on each boot (default `admin`). |
 | `superuser_email` | ✅ | Contact address shown in NetBox. |
-| `superuser_password` | ✅ | Password for the NetBox superuser. Must be provided before the add-on can start. |
-| `allowed_hosts` | ✅ | List of hostnames/IPs NetBox should answer for. Include `homeassistant.local`, the HA host IP, and any reverse-proxy names. |
-| `time_zone` | ➖ | Optional override for NetBox’s timezone. Leave blank to inherit the Supervisor/host timezone automatically. |
+| `superuser_password` | ✅ | Password for the NetBox superuser (defaults to `admin`). Change it as soon as you log in. |
+| `allowed_hosts` | ➖ | Defaults to `*` (all hosts). Override with explicit hostnames/IPs if you need stricter enforcement. |
 | `housekeeping_interval` | ➖ | Seconds between NetBox housekeeping runs (default `3600`). |
 | `enable_prometheus` | ➖ | When `true`, enables NetBox’s Prometheus metrics endpoint at `/metrics`. |
 | `plugins` | ➖ | List of Python module names for NetBox plugins that are already baked into the upstream image. |
