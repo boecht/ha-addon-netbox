@@ -9,6 +9,8 @@ DB_SOCKET_DIR=/run/postgresql
 NETBOX_USER=${NETBOX_USER:-netbox}
 REDIS_CONF=/tmp/redis-netbox.conf
 
+unset PGDATABASE PGHOST PGPORT PGUSER PGSERVICE PGSERVICEFILE PGSSLMODE PGOPTIONS || true
+
 wait_for_postgres() {
   local interval=${DB_WAIT_TIMEOUT:-1}
   local max=${MAX_DB_WAIT_TIME:-30}
@@ -307,7 +309,7 @@ POSTGRES_STARTED=1
 wait_for_postgres
 
 log "Ensuring NetBox database and role exist"
-PGHOST=127.0.0.1 PGPORT=5432 PGDATABASE=postgres PGUSER=postgres gosu postgres psql -v ON_ERROR_STOP=1 -d postgres \\
+gosu postgres psql -h 127.0.0.1 -p 5432 -U postgres -v ON_ERROR_STOP=1 -d postgres \\
   -v db_user="$DB_USER" \\
   -v db_password="$DB_PASSWORD" \\
   -v db_name="$DB_NAME" <<'SQL'
@@ -327,7 +329,8 @@ END;
 $$ LANGUAGE plpgsql;
 SQL
 
-PGHOST=127.0.0.1 PGPORT=5432 PGDATABASE="$DB_NAME" PGUSER=postgres gosu postgres psql -v ON_ERROR_STOP=1 -d "$DB_NAME" -c "GRANT ALL PRIVILEGES ON DATABASE \"$DB_NAME\" TO \"$DB_USER\";" >/dev/null
+gosu postgres psql -h 127.0.0.1 -p 5432 -U postgres -v ON_ERROR_STOP=1 -d "$DB_NAME" \\
+  -c "GRANT ALL PRIVILEGES ON DATABASE \"$DB_NAME\" TO \"$DB_USER\";" >/dev/null
 
 log "Starting Redis"
 cat > "$REDIS_CONF" <<CONF
