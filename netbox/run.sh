@@ -80,7 +80,6 @@ psql_admin() {
       PGUSER=postgres \
       PGAPPNAME="ha-addon-netbox" \
       PGSSLMODE=disable \
-      PGSERVICE= \
       PGSERVICEFILE=/dev/null \
       PGPASSFILE=/dev/null \
       PGCONNECT_TIMEOUT=10 \
