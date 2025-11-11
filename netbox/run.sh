@@ -307,7 +307,7 @@ POSTGRES_STARTED=1
 wait_for_postgres
 
 log "Ensuring NetBox database and role exist"
-gosu postgres psql -v ON_ERROR_STOP=1 \\
+gosu postgres psql -v ON_ERROR_STOP=1 -d postgres \\
   -v db_user="$DB_USER" \\
   -v db_password="$DB_PASSWORD" \\
   -v db_name="$DB_NAME" <<'SQL'
