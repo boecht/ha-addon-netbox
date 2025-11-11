@@ -103,6 +103,43 @@ read_plugins() {
   printf '%s' "$plugins"
 }
 
+add_pg_bin_dirs_to_path() {
+  local glob dir
+  shopt -s nullglob
+  for glob in /usr/lib/postgresql/*/bin /usr/lib/postgresql/bin /usr/local/pgsql/bin; do
+    for dir in $glob; do
+      if [[ -d "$dir" && ":$PATH:" != *":$dir:"* ]]; then
+        PATH="$dir:$PATH"
+      fi
+    done
+  done
+  shopt -u nullglob
+}
+
+resolve_pg_binary() {
+  local binary="$1" path=""
+  if path=$(command -v "$binary" 2>/dev/null); then
+    printf '%s' "$path"
+    return 0
+  fi
+  add_pg_bin_dirs_to_path
+  if path=$(command -v "$binary" 2>/dev/null); then
+    printf '%s' "$path"
+    return 0
+  fi
+  path=$(find /usr/lib/postgresql /usr/local/pgsql -maxdepth 4 -type f -name "$binary" -print -quit 2>/dev/null || true)
+  if [[ -n "$path" ]]; then
+    local dir
+    dir=$(dirname "$path")
+    if [[ -d "$dir" && ":$PATH:" != *":$dir:"* ]]; then
+      PATH="$dir:$PATH"
+    fi
+    printf '%s' "$path"
+    return 0
+  fi
+  return 1
+}
+
 netbox_manage() {
   (cd /opt/netbox/netbox && /opt/netbox/venv/bin/python3 manage.py "$@")
 }
@@ -210,18 +247,22 @@ PLUGINS=$(read_plugins)
 DB_WAIT_TIMEOUT=${DB_WAIT_TIMEOUT:-1}
 MAX_DB_WAIT_TIME=${MAX_DB_WAIT_TIME:-30}
 
-PG_CTL_PATH=$(command -v pg_ctl || true)
+add_pg_bin_dirs_to_path
+
+PG_CTL_PATH=$(resolve_pg_binary pg_ctl || true)
 if [[ -z "$PG_CTL_PATH" ]]; then
-  fatal "pg_ctl not found in PATH; ensure PostgreSQL binaries are installed."
+  fatal "pg_ctl not found; ensure PostgreSQL binaries are installed."
 fi
 
 PG_BIN_DIR=$(dirname "$PG_CTL_PATH")
-PATH="$PG_BIN_DIR:$PATH"
+if [[ ":$PATH:" != *":$PG_BIN_DIR:"* ]]; then
+  PATH="$PG_BIN_DIR:$PATH"
+fi
 export PATH
 
-INITDB="$PG_BIN_DIR/initdb"
-if [[ ! -x "$INITDB" ]]; then
-  fatal "initdb not found alongside pg_ctl at $INITDB"
+INITDB=$(resolve_pg_binary initdb || true)
+if [[ -z "$INITDB" ]]; then
+  fatal "initdb not found; ensure PostgreSQL binaries are installed."
 fi
 
 PG_CTL="$PG_CTL_PATH"
