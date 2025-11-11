@@ -12,6 +12,26 @@ REDIS_CONF=/tmp/redis-netbox.conf
 PATH="$(dirname "$(command -v pg_ctl)"):$PATH"
 export PATH
 
+detect_host_timezone() {
+  if [[ -n "${TZ:-}" ]]; then
+    printf %s "$TZ"
+    return
+  fi
+  if [[ -f /etc/timezone ]]; then
+    tr -d n < /etc/timezone
+    return
+  fi
+  if [[ -L /etc/localtime ]]; then
+    local target
+    target=$(readlink -f /etc/localtime || true)
+    if [[ -n "$target" ]]; then
+      printf %s "${target#*/zoneinfo/}"
+      return
+    fi
+  fi
+  printf %s Etc/UTC
+}
+
 log() {
   printf '[%s] %s\n' "$(date --iso-8601=seconds)" "$1"
 }
@@ -89,7 +109,8 @@ SUPERUSER_PASSWORD=$(read_option "superuser_password" "")
 SUPERUSER_TOKEN=$(ensure_secret "$(read_option "superuser_api_token" "")" "/data/.superuser_token" 64)
 SECRET_KEY=$(ensure_secret "$(read_option "secret_key" "")" "/data/.secret_key" 64)
 ALLOWED_HOSTS=$(read_allowed_hosts)
-TIMEZONE=$(read_option "time_zone" "Etc/UTC")
+HOST_TZ=$(detect_host_timezone)
+TIMEZONE=$(read_option "time_zone" "$HOST_TZ")
 HOUSEKEEPING_INTERVAL=$(read_option "housekeeping_interval" "3600")
 METRICS_ENABLED=$(read_option "enable_prometheus" "false")
 PLUGINS=$(read_plugins)
