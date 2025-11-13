@@ -12,10 +12,11 @@ init: false
 panel_icon: mdi:table-network
 image: "ghcr.io/boecht/ha-addon-netbox/netbox-{arch}"
 ports:
-  8000/tcp: 8000
+  8000/tcp: 8080
 ports_description:
   8000/tcp: NetBox web UI
 watchdog: "http://[HOST]:[PORT:8000]/health/"
+webui: "http://[HOST]:[PORT:8000]/"
 ingress: false
 host_network: false
 apparmor: false

@@ -22,7 +22,7 @@ fatal() {
 log_debug() {
   local flag="${DEBUG,,}"
   if [[ "$flag" == "true" || "$flag" == "1" || "$flag" == "yes" ]]; then
-    log "DEBUG: $1"
+    printf '[%s] DEBUG: %s\n' "$(date --iso-8601=seconds)" "$1" >&2
   fi
 }
 
