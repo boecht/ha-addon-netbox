@@ -14,7 +14,7 @@ image: "ghcr.io/boecht/ha-addon-netbox/netbox-{arch}"
 ports:
   8080/tcp: 8000
 ports_description:
-  8080/tcp: NetBox web UI
+  8080/tcp: "NetBox web UI (container port 8080)"
 watchdog: "http://[HOST]:[PORT:8000]/health/"
 webui: "http://[HOST]:[PORT:8000]/"
 ingress: false
