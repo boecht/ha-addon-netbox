@@ -26,6 +26,8 @@ log_debug() {
   fi
 }
 
+log "######  Build 2025-11-13.03-37  ######"
+
 existing_pg_env=$(env | grep '^PG' || true)
 if [[ -n "$existing_pg_env" ]]; then
   log_debug "Inherited PG environment before cleanup:\n$existing_pg_env"
