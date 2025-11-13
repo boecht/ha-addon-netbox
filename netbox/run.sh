@@ -379,20 +379,23 @@ DO
 DECLARE
   db_user text := '$db_user_literal';
   db_password text := '$db_password_literal';
-  db_name text := '$db_name_literal';
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = db_user) THEN
     EXECUTE format('CREATE ROLE %I LOGIN', db_user);
   END IF;
   EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', db_user, db_password);
-  IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = db_name) THEN
-    EXECUTE format('CREATE DATABASE %I OWNER %I ENCODING ''UTF8''', db_name, db_user);
-  ELSE
-    EXECUTE format('ALTER DATABASE %I OWNER TO %I', db_name, db_user);
-  END IF;
 END;
 \$\$ LANGUAGE plpgsql;
 SQL
+
+db_exists=$(psql_admin postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$db_name_literal'" | tr -d '\r\n ')
+if [[ "$db_exists" != "1" ]]; then
+  log "Creating NetBox database $DB_NAME"
+  psql_admin postgres -c "CREATE DATABASE \"$DB_NAME\" OWNER \"$DB_USER\" ENCODING 'UTF8'"
+else
+  log "Ensuring NetBox database owner"
+  psql_admin postgres -c "ALTER DATABASE \"$DB_NAME\" OWNER TO \"$DB_USER\""
+fi
 
 psql_admin "$DB_NAME" \
   -c "GRANT ALL PRIVILEGES ON DATABASE \"$DB_NAME\" TO \"$DB_USER\";" >/dev/null
