@@ -1,5 +1,5 @@
 name: "NetBox"
-version: "0.1.10"
+version: "0.1.11"
 slug: "netbox"
 description: "Network asset management tool"
 arch:
@@ -33,7 +33,7 @@ options:
   enable_prometheus: false
   plugins:
     - netbox_topology_views
-    - netbox_plugin_dns
+    - netbox_dns
     - netbox_ping
     - netbox_plugin_extensions
 schema:
