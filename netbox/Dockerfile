@@ -11,13 +11,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
-    jq \
     gosu \
-    tini \
+    jq \
     postgresql \
     postgresql-client \
     redis-server \
     redis-tools \
+    tini \
     && rm -rf /var/lib/apt/lists/*
 
 RUN if ! id -u netbox >/dev/null 2>&1; then \
