@@ -115,6 +115,18 @@ detect_host_timezone() {
   printf '%s' 'Etc/UTC'
 }
 
+write_postgres_conf() {
+  local tz_escaped=${TIMEZONE//\'/\'\'}
+  cat > "$PGDATA/postgresql.conf" <<CONF
+listen_addresses = '127.0.0.1'
+port = 5432
+unix_socket_directories = '$DB_SOCKET_DIR'
+max_connections = 200
+shared_buffers = 256MB
+timezone = '$tz_escaped'
+CONF
+}
+
 read_option() {
   local key="$1" default_value="$2" value=""
   if [[ -s "$CONFIG_PATH" ]]; then
@@ -336,13 +348,7 @@ chown postgres:postgres "$DB_SOCKET_DIR"
 if [[ ! -f "$PGDATA/PG_VERSION" ]]; then
   log "Initializing PostgreSQL data directory"
   gosu postgres "$INITDB" -D "$PGDATA" --encoding=UTF8 --locale=C
-  cat > "$PGDATA/postgresql.conf" <<CONF
-listen_addresses = '127.0.0.1'
-port = 5432
-unix_socket_directories = '$DB_SOCKET_DIR'
-max_connections = 200
-shared_buffers = 256MB
-CONF
+  write_postgres_conf
   cat > "$PGDATA/pg_hba.conf" <<HBA
 local   all             all                                     trust
 host    all             all             127.0.0.1/32            md5
