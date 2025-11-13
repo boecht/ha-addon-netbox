@@ -29,7 +29,7 @@ RUN if ! id -u netbox >/dev/null 2>&1; then \
     && chown -R redis:redis /data/redis \
     && chown -R netbox:netbox /data/netbox
 
-RUN /opt/netbox/venv/bin/pip install --no-cache-dir \
+RUN /opt/netbox/venv/bin/python -m pip install --no-cache-dir \
     netbox-topology-views==4.4.0 \
     netbox-plugin-dns==1.4.3 \
     netbox-ping==0.54 \
