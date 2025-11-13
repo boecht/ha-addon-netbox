@@ -29,8 +29,10 @@ RUN if ! id -u netbox >/dev/null 2>&1; then \
     && chown -R redis:redis /data/redis \
     && chown -R netbox:netbox /data/netbox
 
-RUN /opt/netbox/venv/bin/python -m ensurepip --upgrade \
-    && /opt/netbox/venv/bin/python -m pip install --no-cache-dir \
+RUN curl -sSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
+    && /opt/netbox/venv/bin/python /tmp/get-pip.py \
+    && rm /tmp/get-pip.py \
+    && /opt/netbox/venv/bin/pip install --no-cache-dir \
     netbox-ping==0.54 \
     netbox-plugin-dns==1.4.3 \
     netbox-plugin-extensions==1.1.1 \
