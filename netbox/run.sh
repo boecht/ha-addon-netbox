@@ -394,8 +394,7 @@ END;
 \$\$ LANGUAGE plpgsql;
 SQL
 
-db_exists=$(psql_admin postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '$db_name_literal'" | tr -d '\r\n ')
-if [[ "$db_exists" != "1" ]]; then
+if ! psql_admin postgres -d postgres -v db_name="$DB_NAME" -c "SELECT 1 FROM pg_database WHERE datname = :'db_name';" >/dev/null 2>&1; then
   log "Creating NetBox database $DB_NAME"
   psql_admin postgres -c "CREATE DATABASE \"$DB_NAME\" OWNER \"$DB_USER\" ENCODING 'UTF8'"
 else

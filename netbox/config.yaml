@@ -1,5 +1,5 @@
 name: "NetBox"
-version: "0.1.6"
+version: "0.1.7"
 slug: "netbox"
 description: "Network asset management tool"
 arch:
