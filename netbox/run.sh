@@ -63,6 +63,11 @@ wait_for_postgres() {
   done
 }
 
+sql_escape_literal() {
+  local input=${1//\'/\'\'}
+  printf '%s' "$input"
+}
+
 psql_admin() {
   local database="$1" socket_host
   shift
@@ -365,24 +370,28 @@ POSTGRES_STARTED=1
 wait_for_postgres
 
 log "Ensuring NetBox database and role exist"
-psql_admin postgres \
-  -v db_user="$DB_USER" \
-  -v db_password="$DB_PASSWORD" \
-  -v db_name="$DB_NAME" <<'SQL'
+db_user_literal=$(sql_escape_literal "$DB_USER")
+db_password_literal=$(sql_escape_literal "$DB_PASSWORD")
+db_name_literal=$(sql_escape_literal "$DB_NAME")
+psql_admin postgres <<SQL
 DO
-$$
+\$\$
+DECLARE
+  db_user text := '$db_user_literal';
+  db_password text := '$db_password_literal';
+  db_name text := '$db_name_literal';
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'db_user') THEN
-    EXECUTE format('CREATE ROLE %I LOGIN', :'db_user');
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = db_user) THEN
+    EXECUTE format('CREATE ROLE %I LOGIN', db_user);
   END IF;
-  EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', :'db_user', :'db_password');
-  IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'db_name') THEN
-    EXECUTE format('CREATE DATABASE %I OWNER %I ENCODING ''UTF8''', :'db_name', :'db_user');
+  EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', db_user, db_password);
+  IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = db_name) THEN
+    EXECUTE format('CREATE DATABASE %I OWNER %I ENCODING ''UTF8''', db_name, db_user);
   ELSE
-    EXECUTE format('ALTER DATABASE %I OWNER TO %I', :'db_name', :'db_user');
+    EXECUTE format('ALTER DATABASE %I OWNER TO %I', db_name, db_user);
   END IF;
 END;
-$$ LANGUAGE plpgsql;
+\$\$ LANGUAGE plpgsql;
 SQL
 
 psql_admin "$DB_NAME" \
