@@ -23,7 +23,7 @@
       },
       "plugins": {
         "name": "NetBox plugins",
-        "description": "Select which bundled plugins to enable. By default all (netbox_topology_views, netbox_plugin_dns, netbox_ping, netbox_plugin_extensions) are active."
+        "description": "Comma-separated plugin module names to enable (e.g. netbox_topology_views,netbox_plugin_dns). Bundled choices: netbox_topology_views, netbox_plugin_dns, netbox_ping, netbox_plugin_extensions. Leave blank to disable all."
       }
     }
   }
