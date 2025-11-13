@@ -7,11 +7,11 @@ on:
   pull_request:
     paths:
       - "netbox/**"
-      - ".github/workflows/build.yml"
+      #- ".github/workflows/build.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -61,6 +63,16 @@ jobs:
             ${{ env.REGISTRY }}/boecht/ha-addon-netbox/netbox-${{ matrix.arch_slug }}:latest
           build-args: |
             BUILD_FROM=ghcr.io/netbox-community/netbox:v4.4.6-3.4.2
+
+      - name: Tag commit with add-on version
+        if: github.event_name != 'pull_request' && matrix.arch_slug == 'amd64'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git tag -f "$VERSION" "$GITHUB_SHA"
+          git push origin --force "$VERSION"
 
       - name: Upload artifact (PR builds)
         if: github.event_name == 'pull_request' && matrix.arch_slug == 'amd64'
