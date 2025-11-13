@@ -1,0 +1,30 @@
+{
+  "configuration": {
+    "page": {
+      "title": "NetBox",
+      "description": "Network documentation and IPAM/DCIM platform running inside Home Assistant."
+    },
+    "options": {
+      "reset_superuser": {
+        "name": "Reset admin credentials",
+        "description": "Create or reset the NetBox admin user to admin/admin on next start. Turn off again after you log in." 
+      },
+      "allowed_hosts": {
+        "name": "Allowed hosts",
+        "description": "Hosts allowed to reach NetBox (comma-separated hostnames, IPs, or wildcards, e.g. homeassistant.local, 192.168.1.10, *.example.com). CIDR ranges like 10.3.2.0/24 are not supported. Set * to allow any host on your LAN."
+      },
+      "housekeeping_interval": {
+        "name": "Housekeeping interval",
+        "description": "Seconds between NetBox housekeeping jobs (default 3600)."
+      },
+      "enable_prometheus": {
+        "name": "Enable Prometheus metrics",
+        "description": "Expose NetBox metrics at /metrics for scraping."
+      },
+      "plugins": {
+        "name": "NetBox plugins",
+        "description": "Comma-separated Python module names of NetBox plugins you want to enable (e.g. netbox_bgp, mycorp_plugin). Only plugins already baked into the image are available; see https://docs.netbox.dev/en/stable/plugins/."
+      }
+    }
+  }
+}
