@@ -183,10 +183,12 @@ read_plugins() {
 write_plugins_config() {
   local plugin_json="$1"
   mkdir -p /etc/netbox/config
+  log_debug "Writing plugin config to $PLUGINS_CONFIG_PATH: $plugin_json"
   cat > "$PLUGINS_CONFIG_PATH" <<PY
 PLUGINS = $plugin_json
 PLUGINS_CONFIG = {}
 PY
+  log_debug "Current plugin config file contents: $(cat "$PLUGINS_CONFIG_PATH" 2>/dev/null || echo '<missing>')"
 }
 
 add_pg_bin_dirs_to_path() {
@@ -327,6 +329,7 @@ TIMEZONE="$HOST_TZ"
 HOUSEKEEPING_INTERVAL=$(read_option "housekeeping_interval" "3600")
 METRICS_ENABLED=$(read_option "enable_prometheus" "false")
 PLUGINS=$(read_plugins)
+log_debug "Plugins list resolved from config: $PLUGINS"
 write_plugins_config "$PLUGINS"
 log_debug "Database config: DB_NAME=$DB_NAME DB_USER=$DB_USER PGDATA=$PGDATA"
 
@@ -384,6 +387,7 @@ POSTGRES_STARTED=1
 wait_for_postgres
 
 log "Ensuring NetBox database and role exist"
+log_debug "Ensuring NetBox DB roles via psql_admin"
 db_user_literal=$(sql_escape_literal "$DB_USER")
 db_password_literal=$(sql_escape_literal "$DB_PASSWORD")
 db_name_literal=$(sql_escape_literal "$DB_NAME")
@@ -411,6 +415,7 @@ END;
 \$\$ LANGUAGE plpgsql;
 SQL
 
+log_debug "Applying DB grants via psql_admin"
 psql_admin "$DB_NAME" \
   -c "GRANT ALL PRIVILEGES ON DATABASE \"$DB_NAME\" TO \"$DB_USER\";" >/dev/null
 
