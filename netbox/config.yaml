@@ -43,9 +43,4 @@ schema:
   housekeeping_interval: int(300,86400)
   enable_prometheus: bool
   plugins:
-    type: multi_select
-    options:
-      - netbox_topology_views
-      - netbox_plugin_dns
-      - netbox_ping
-      - netbox_plugin_extensions
+    - select(netbox_topology_views|netbox_plugin_dns|netbox_ping|netbox_plugin_extensions)
