@@ -244,8 +244,12 @@ password = "admin"
 user, created = User.objects.get_or_create(username=username, defaults={"email": email})
 if created:
     user.set_password(password)
-    user.save()
-    print("✅ Created default NetBox admin user (admin/admin)")
+user.is_active = True
+user.is_staff = True
+user.is_superuser = True
+user.email = email
+user.save()
+print("✅ Created default NetBox admin user (admin/admin)")
 PY
   touch "$DEFAULT_SUPERUSER_FLAG"
 }
@@ -265,6 +269,8 @@ password = "admin"
 user, _ = User.objects.get_or_create(username=username)
 user.email = email
 user.is_active = True
+user.is_staff = True
+user.is_superuser = True
 user.set_password(password)
 user.save()
 print("✅ NetBox admin credentials reset; please change them inside NetBox.")
