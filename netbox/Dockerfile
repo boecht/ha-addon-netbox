@@ -29,12 +29,13 @@ RUN if ! id -u netbox >/dev/null 2>&1; then \
     && chown -R redis:redis /data/redis \
     && chown -R netbox:netbox /data/netbox
 
-RUN /opt/netbox/venv/bin/python -m pip install --no-cache-dir \
-    netbox-topology-views==4.4.0 \
-    netbox-plugin-dns==1.4.3 \
+RUN /opt/netbox/venv/bin/python -m ensurepip --upgrade \
+    && /opt/netbox/venv/bin/python -m pip install --no-cache-dir \
     netbox-ping==0.54 \
-    ntc-netbox-plugin-onboarding==2.2.0 \
-    netbox-plugin-extensions==1.1.1
+    netbox-plugin-dns==1.4.3 \
+    netbox-plugin-extensions==1.1.1 \
+    netbox-topology-views==4.4.0 \
+    ntc-netbox-plugin-onboarding==2.2.0 
 
 COPY run.sh /usr/local/bin/addon-run.sh
 RUN chmod +x /usr/local/bin/addon-run.sh
