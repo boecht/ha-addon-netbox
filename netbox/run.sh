@@ -292,6 +292,17 @@ else:
 PY
 }
 
+log_active_plugins() {
+  log_debug "Querying NetBox for active plugin list"
+  if ! netbox_manage shell --interface python <<'PY'
+from django.conf import settings
+print("Active plugins:", settings.PLUGINS)
+PY
+  then
+    log "WARNING: Failed to read settings.PLUGINS"
+  fi
+}
+
 run_housekeeping_if_needed() {
   if netbox_manage migrate --check >/dev/null 2>&1; then
     return
@@ -478,6 +489,7 @@ run_housekeeping_if_needed
 ensure_superuser_exists
 reset_superuser_if_requested
 warn_default_token
+log_active_plugins
 
 log "Launching NetBox via upstream entrypoint"
 exec "$@"
