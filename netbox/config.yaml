@@ -1,5 +1,5 @@
 name: "NetBox"
-version: "0.1.4"
+version: "0.1.5"
 slug: "netbox"
 description: "Network asset management tool"
 arch:
@@ -12,7 +12,7 @@ init: false
 panel_icon: mdi:table-network
 image: "ghcr.io/boecht/ha-addon-netbox/netbox-{arch}"
 ports:
-  8000/tcp: 8080
+  8000/tcp: 8000
 ports_description:
   8000/tcp: NetBox web UI
 watchdog: "http://[HOST]:[PORT:8000]/health/"
