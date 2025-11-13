@@ -239,20 +239,6 @@ PY
   touch "$DEFAULT_SUPERUSER_FLAG"
 }
 
-clear_reset_flag() {
-  if [[ ! -f "$CONFIG_PATH" ]]; then
-    return
-  fi
-  local tmp
-  tmp=$(mktemp)
-  if jq '.reset_superuser = false' "$CONFIG_PATH" > "$tmp"; then
-    mv "$tmp" "$CONFIG_PATH"
-  else
-    rm -f "$tmp"
-    log "Failed to clear reset_superuser flag; please toggle it off manually."
-  fi
-}
-
 reset_superuser_if_requested() {
   local flag="${RESET_SUPERUSER,,}"
   if [[ "$flag" != "true" ]]; then
@@ -272,7 +258,7 @@ user.set_password(password)
 user.save()
 print("✅ NetBox admin credentials reset; please change them inside NetBox.")
 PY
-  clear_reset_flag
+  log "Reset complete; please toggle reset_superuser off in the add-on UI."
 }
 
 warn_default_token() {

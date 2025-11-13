@@ -38,4 +38,4 @@ ENV PGDATA=/data/postgres \
     LC_ALL=C.UTF-8
 
 ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/usr/local/bin/addon-run.sh"]
-CMD ["/opt/netbox/docker-entrypoint.sh", "gunicorn"]
+CMD ["/opt/netbox/docker-entrypoint.sh", "/opt/netbox/launch-netbox.sh"]
