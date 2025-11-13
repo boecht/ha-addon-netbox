@@ -23,7 +23,7 @@
       },
       "plugins": {
         "name": "NetBox plugins",
-        "description": "Comma-separated Python module names of NetBox plugins you want to enable (e.g. netbox_bgp, mycorp_plugin). Only plugins already baked into the image are available; see https://docs.netbox.dev/en/stable/plugins/."
+        "description": "Select which bundled plugins to enable. By default all (netbox_topology_views, netbox_plugin_dns, netbox_ping, netbox_plugin_extensions) are active."
       }
     }
   }
