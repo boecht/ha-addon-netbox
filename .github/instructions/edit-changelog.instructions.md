@@ -47,8 +47,7 @@ This is the authoritative guidance for creating or editing `CHANGELOG.md`.
 # Changelog
 
 All notable changes to BiRRe (BitSight Rating Retriever) will be documented in this file.
-See [Changelog Instructions](.github/instructions/edit-changelog.instructions.md) for updating guidelines.
-
+w
 ## [X.Y.Z] - YYYY-MM-DD
 
 ### Changed
