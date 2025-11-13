@@ -11,6 +11,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    fping \
     gosu \
     jq \
     postgresql \
@@ -27,6 +28,13 @@ RUN if ! id -u netbox >/dev/null 2>&1; then \
     && chown -R postgres:postgres /data/postgres /run/postgresql \
     && chown -R redis:redis /data/redis \
     && chown -R netbox:netbox /data/netbox
+
+RUN /opt/netbox/venv/bin/pip install --no-cache-dir \
+    netbox-topology-views==4.4.0 \
+    netbox-plugin-dns==1.4.3 \
+    netbox-ping==0.54 \
+    ntc-netbox-plugin-onboarding==2.2.0 \
+    netbox-plugin-extensions==1.1.1
 
 COPY run.sh /usr/local/bin/addon-run.sh
 RUN chmod +x /usr/local/bin/addon-run.sh
