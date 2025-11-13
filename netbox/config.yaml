@@ -1,5 +1,5 @@
 name: "NetBox"
-version: "0.1.9"
+version: "0.1.10"
 slug: "netbox"
 description: "Network asset management tool"
 arch:
@@ -12,9 +12,9 @@ init: false
 panel_icon: mdi:table-network
 image: "ghcr.io/boecht/ha-addon-netbox/netbox-{arch}"
 ports:
-  8000/tcp: 8000
+  8080/tcp: 8000
 ports_description:
-  8000/tcp: NetBox web UI
+  8080/tcp: NetBox web UI
 watchdog: "http://[HOST]:[PORT:8000]/health/"
 webui: "http://[HOST]:[PORT:8000]/"
 ingress: false
@@ -31,7 +31,11 @@ options:
     - "*"
   housekeeping_interval: 3600
   enable_prometheus: false
-  plugins: []
+  plugins:
+    - netbox_topology_views
+    - netbox_plugin_dns
+    - netbox_ping
+    - netbox_plugin_extensions
 schema:
   reset_superuser: bool
   allowed_hosts:
@@ -39,4 +43,9 @@ schema:
   housekeeping_interval: int(300,86400)
   enable_prometheus: bool
   plugins:
-    - str?
+    type: multi_select
+    options:
+      - netbox_topology_views
+      - netbox_plugin_dns
+      - netbox_ping
+      - netbox_plugin_extensions

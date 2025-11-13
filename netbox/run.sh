@@ -9,6 +9,8 @@ DB_SOCKET_DIR=/run/postgresql
 NETBOX_USER=${NETBOX_USER:-netbox}
 REDIS_CONF=/tmp/redis-netbox.conf
 DEFAULT_SUPERUSER_FLAG=/data/.superuser_initialized
+DEFAULT_PLUGINS_JSON='["netbox_topology_views","netbox_plugin_dns","netbox_ping","netbox_plugin_extensions"]'
+PLUGINS_CONFIG_PATH=/etc/netbox/config/99-ha-addon-plugins.py
 DEBUG=${DEBUG:-${ADDON_DEBUG:-true}}
 
 log() {
@@ -172,10 +174,19 @@ read_plugins() {
   if [[ -s "$CONFIG_PATH" ]]; then
     plugins=$(jq -c '.plugins // []' "$CONFIG_PATH" 2>/dev/null || echo '[]')
   fi
-  if [[ -z "$plugins" ]]; then
-    plugins="[]"
+  if [[ -z "$plugins" || "$plugins" == "null" ]]; then
+    plugins="$DEFAULT_PLUGINS_JSON"
   fi
   printf '%s' "$plugins"
+}
+
+write_plugins_config() {
+  local plugin_json="$1"
+  mkdir -p /etc/netbox/config
+  cat > "$PLUGINS_CONFIG_PATH" <<PY
+PLUGINS = $plugin_json
+PLUGINS_CONFIG = {}
+PY
 }
 
 add_pg_bin_dirs_to_path() {
@@ -310,6 +321,7 @@ TIMEZONE="$HOST_TZ"
 HOUSEKEEPING_INTERVAL=$(read_option "housekeeping_interval" "3600")
 METRICS_ENABLED=$(read_option "enable_prometheus" "false")
 PLUGINS=$(read_plugins)
+write_plugins_config "$PLUGINS"
 log_debug "Database config: DB_NAME=$DB_NAME DB_USER=$DB_USER PGDATA=$PGDATA"
 
 add_pg_bin_dirs_to_path
