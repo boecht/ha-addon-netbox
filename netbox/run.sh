@@ -8,6 +8,7 @@ NETBOX_DATA_DIR=${NETBOX_DATA_DIR:-/data/netbox}
 DB_SOCKET_DIR=/run/postgresql
 NETBOX_USER=${NETBOX_USER:-netbox}
 REDIS_CONF=/tmp/redis-netbox.conf
+DEFAULT_SUPERUSER_FLAG=/data/.superuser_initialized
 DEBUG=${DEBUG:-${ADDON_DEBUG:-true}}
 
 log() {
@@ -50,8 +51,8 @@ else
 fi
 
 wait_for_postgres() {
-  local interval=${DB_WAIT_TIMEOUT:-1}
-  local max=${MAX_DB_WAIT_TIME:-30}
+  local interval=1
+  local max=30
   local waited=0
   while ! pg_isready -h 127.0.0.1 -p 5432 >/dev/null 2>&1; do
     if (( waited >= max )); then
@@ -219,6 +220,10 @@ netbox_manage() {
 }
 
 ensure_superuser_exists() {
+  if [[ -f "$DEFAULT_SUPERUSER_FLAG" ]]; then
+    log_debug "Default superuser already initialized"
+    return
+  fi
   netbox_manage shell --interface python <<'PY'
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -231,6 +236,7 @@ if created:
     user.save()
     print("✅ Created default NetBox admin user (admin/admin)")
 PY
+  touch "$DEFAULT_SUPERUSER_FLAG"
 }
 
 clear_reset_flag() {
@@ -298,7 +304,7 @@ run_housekeeping_if_needed() {
 }
 
 ensure_directories() {
-  mkdir -p "$PGDATA" "$REDIS_DATA_DIR" "$NETBOX_DATA_DIR"/media "$NETBOX_DATA_DIR"/reports "$NETBOX_DATA_DIR"/scripts
+  mkdir -p "$PGDATA" "$REDIS_DATA_DIR" "$NETBOX_DATA_DIR"/media "$NETBOX_DATA_DIR"/reports "$NETBOX_DATA_DIR"/scripts "$DB_SOCKET_DIR"
 }
 
 ensure_directories
@@ -318,8 +324,6 @@ TIMEZONE="$HOST_TZ"
 HOUSEKEEPING_INTERVAL=$(read_option "housekeeping_interval" "3600")
 METRICS_ENABLED=$(read_option "enable_prometheus" "false")
 PLUGINS=$(read_plugins)
-DB_WAIT_TIMEOUT=${DB_WAIT_TIMEOUT:-1}
-MAX_DB_WAIT_TIME=${MAX_DB_WAIT_TIME:-30}
 log_debug "Database config: DB_NAME=$DB_NAME DB_USER=$DB_USER PGDATA=$PGDATA"
 
 add_pg_bin_dirs_to_path
@@ -385,22 +389,23 @@ DO
 DECLARE
   db_user text := '$db_user_literal';
   db_password text := '$db_password_literal';
+  db_name text := '$db_name_literal';
+  db_exists boolean;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = db_user) THEN
     EXECUTE format('CREATE ROLE %I LOGIN', db_user);
   END IF;
   EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', db_user, db_password);
+
+  SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = db_name) INTO db_exists;
+  IF NOT db_exists THEN
+    EXECUTE format('CREATE DATABASE %I OWNER %I ENCODING ''UTF8''', db_name, db_user);
+  ELSE
+    EXECUTE format('ALTER DATABASE %I OWNER TO %I', db_name, db_user);
+  END IF;
 END;
 \$\$ LANGUAGE plpgsql;
 SQL
-
-if ! psql_admin postgres -d postgres -v db_name="$DB_NAME" -c "SELECT 1 FROM pg_database WHERE datname = :'db_name';" >/dev/null 2>&1; then
-  log "Creating NetBox database $DB_NAME"
-  psql_admin postgres -c "CREATE DATABASE \"$DB_NAME\" OWNER \"$DB_USER\" ENCODING 'UTF8'"
-else
-  log "Ensuring NetBox database owner"
-  psql_admin postgres -c "ALTER DATABASE \"$DB_NAME\" OWNER TO \"$DB_USER\""
-fi
 
 psql_admin "$DB_NAME" \
   -c "GRANT ALL PRIVILEGES ON DATABASE \"$DB_NAME\" TO \"$DB_USER\";" >/dev/null
