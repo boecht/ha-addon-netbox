@@ -1,5 +1,5 @@
 name: "NetBox"
-version: "0.1.11"
+version: "0.1.12"
 slug: "netbox"
 description: "Network asset management tool"
 arch:
@@ -35,7 +35,6 @@ options:
     - netbox_topology_views
     - netbox_dns
     - netbox_ping
-    - netbox_plugin_extensions
 schema:
   reset_superuser: bool
   allowed_hosts:

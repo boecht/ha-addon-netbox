@@ -9,7 +9,7 @@ DB_SOCKET_DIR=/run/postgresql
 NETBOX_USER=${NETBOX_USER:-netbox}
 REDIS_CONF=/tmp/redis-netbox.conf
 DEFAULT_SUPERUSER_FLAG=/data/.superuser_initialized
-DEFAULT_PLUGINS_JSON='["netbox_topology_views","netbox_dns","netbox_ping","netbox_plugin_extensions"]'
+DEFAULT_PLUGINS_JSON='["netbox_topology_views","netbox_dns","netbox_ping"]'
 PLUGINS_CONFIG_PATH=/etc/netbox/config/99-ha-addon-plugins.py
 DEBUG=${DEBUG:-${ADDON_DEBUG:-true}}
 

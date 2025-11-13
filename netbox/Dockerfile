@@ -35,7 +35,6 @@ RUN curl -sSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
     && /opt/netbox/venv/bin/pip install --no-cache-dir \
     netbox-ping==0.54 \
     netbox-plugin-dns==1.4.3 \
-    netbox-plugin-extensions==1.1.1 \
     netbox-topology-views==4.4.0 \
     ntc-netbox-plugin-onboarding==2.2.0 
 
