@@ -521,6 +521,7 @@ save 60 1000
 appendonly yes
 protected-mode yes
 loglevel warning
+ignore-warnings ARM64-COW-BUG
 CONF
 chown redis:redis "$REDIS_CONF"
 chown -R redis:redis "$REDIS_DATA_DIR"
