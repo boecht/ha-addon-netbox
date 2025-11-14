@@ -240,12 +240,12 @@ read_plugins() {
 }
 
 write_plugins_config() {
-    local plugin_json="$1"
+    local plugin_json="$1" plugin_config_json="$2"
     mkdir -p /etc/netbox/config
-    log_debug "Writing plugin config to $PLUGINS_CONFIG_PATH: $plugin_json"
+    log_debug "Writing plugin config to $PLUGINS_CONFIG_PATH: $plugin_json with config $plugin_config_json"
   cat > "$PLUGINS_CONFIG_PATH" <<PY
 PLUGINS = $plugin_json
-PLUGINS_CONFIG = {}
+PLUGINS_CONFIG = $plugin_config_json
 PY
     log_debug "Plugin config file contents:\n$(cat "$PLUGINS_CONFIG_PATH" 2>/dev/null || echo '<missing>')"
 }
@@ -401,8 +401,23 @@ TIMEZONE="$HOST_TZ"
 HOUSEKEEPING_INTERVAL=$(read_option "housekeeping_interval" "3600")
 METRICS_ENABLED=$(read_option "enable_prometheus" "false")
 PLUGINS=$(read_plugins)
+NAPALM_USERNAME=$(read_option "napalm_username" "")
+NAPALM_PASSWORD=$(read_option "napalm_password" "")
+NAPALM_TIMEOUT=$(read_option "napalm_timeout" "30")
+NAPALM_TIMEOUT=${NAPALM_TIMEOUT:-30}
 log_debug "Plugins list resolved from config: $PLUGINS"
-write_plugins_config "$PLUGINS"
+NAPALM_PLUGIN_CONFIG='{}'
+if jq -e 'index("netbox_napalm_plugin")' <<<"$PLUGINS" >/dev/null 2>&1; then
+    if [[ -z "$NAPALM_USERNAME" ]]; then
+        log_critical "napalm_username option is required when netbox_napalm_plugin is enabled."
+    fi
+    NAPALM_PLUGIN_CONFIG=$(jq -n --arg u "$NAPALM_USERNAME" --arg p "$NAPALM_PASSWORD" --argjson t "$NAPALM_TIMEOUT" '{
+      ("netbox_napalm_plugin"): ({NAPALM_USERNAME: $u}
+        + (if ($p | length) > 0 then {NAPALM_PASSWORD: $p} else {} end)
+        + {NAPALM_TIMEOUT: $t})
+    }')
+fi
+write_plugins_config "$PLUGINS" "$NAPALM_PLUGIN_CONFIG"
 log_debug "Database config: DB_NAME=$DB_NAME DB_USER=$DB_USER PGDATA=$PGDATA socket_dir=$DB_SOCKET_DIR"
 
 add_pg_bin_dirs_to_path

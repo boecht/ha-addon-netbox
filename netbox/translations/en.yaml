@@ -26,5 +26,17 @@ configuration:
     description: >
       Comma-separated plugin module names to enable. Available choices:
       netbox_napalm_plugin, netbox_ping, netbox_topology_views. Leave blank to disable all.
+  napalm_username:
+    name: NAPALM username
+    description: >
+      Username NetBox will use for NAPALM device logins. Required when netbox_napalm_plugin is enabled.
+  napalm_password:
+    name: NAPALM password
+    description: >
+      Password for the configured NAPALM username. Leave blank if you rely on SSH keys or other auth.
+  napalm_timeout:
+    name: NAPALM timeout (seconds)
+    description: >
+      Timeout (in seconds) for NAPALM device calls. Increase if devices sit on high-latency links.
 network:
   8080/tcp: NetBox web UI

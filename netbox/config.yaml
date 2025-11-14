@@ -1,7 +1,7 @@
 # Home Assistant add-on manifest for NetBox. Defines metadata, runtime options, and defaults
 # consumed by Supervisor when rendering the configuration UI.
 name: "NetBox"
-version: "0.1.20"
+version: "0.1.21"
 slug: "netbox"
 description: "Network asset management tool"
 arch:
@@ -40,6 +40,9 @@ options:
     - netbox_napalm_plugin
     - netbox_ping
     - netbox_topology_views
+  napalm_username: ""
+  napalm_password: ""
+  napalm_timeout: 30
 
 # Validation schema for the options above.
 schema:
@@ -51,3 +54,6 @@ schema:
   debug_logging: bool
   plugins:
     - str?
+  napalm_username: str?
+  napalm_password: str?
+  napalm_timeout: int(1,600)?

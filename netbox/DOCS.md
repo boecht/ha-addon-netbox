@@ -22,6 +22,9 @@ Only a handful of options are exposed in the add-on UI. Everything else is gener
 | `enable_prometheus`     | ➖       | When `true`, enables NetBox’s Prometheus metrics endpoint at `/metrics`.                                                                 |
 | `debug_logging`         | ➖       | Toggles verbose DEBUG logs from the supervisor script. Leave on while diagnosing issues; turn off for quieter Supervisor logs.          |
 | `plugins`               | ➖       | List of Python module names for NetBox plugins that are already baked into the upstream image.                                           |
+| `napalm_username`       | ✅*      | Username used by `netbox_napalm_plugin` when talking to devices over NAPALM. Required if the plugin stays enabled.                       |
+| `napalm_password`       | ➖       | Matching password for the NAPALM username. Leave blank if your devices authenticate via SSH keys.                                       |
+| `napalm_timeout`        | ➖       | Timeout (seconds) for all NAPALM interactions. Increase for high-latency or slow devices.                                               |
 
 ### Credentials & secrets
 
