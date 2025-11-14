@@ -20,6 +20,7 @@ Only a handful of options are exposed in the add-on UI. Everything else is gener
 | `allowed_hosts`         | ➖       | Defaults to `*` (all hosts). Override with explicit hostnames/IPs if you need stricter enforcement.                                      |
 | `housekeeping_interval` | ➖       | Seconds between NetBox housekeeping runs (default `3600`).                                                                               |
 | `enable_prometheus`     | ➖       | When `true`, enables NetBox’s Prometheus metrics endpoint at `/metrics`.                                                                 |
+| `debug_logging`         | ➖       | Toggles verbose DEBUG logs from the supervisor script. Leave on while diagnosing issues; turn off for quieter Supervisor logs.          |
 | `plugins`               | ➖       | List of Python module names for NetBox plugins that are already baked into the upstream image.                                           |
 
 ### Credentials & secrets
