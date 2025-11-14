@@ -1,7 +1,7 @@
 # Home Assistant add-on manifest for NetBox. Defines metadata, runtime options, and defaults
 # consumed by Supervisor when rendering the configuration UI.
 name: "NetBox"
-version: "0.1.22"
+version: "0.1.23"
 slug: "netbox"
 description: "Network asset management tool"
 arch:
@@ -20,7 +20,9 @@ ports_description:
   8080/tcp: "NetBox web UI (container port 8080)"
 watchdog: "http://[HOST]:[PORT:8000]/health/"
 webui: "http://[HOST]:[PORT:8000]/"
-ingress: false
+ingress: true
+ingress_port: 8000
+ingress_entry: /
 host_network: false
 apparmor: true
 map:
