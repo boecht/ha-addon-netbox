@@ -2,6 +2,8 @@
 
 This repository hosts the NetBox Home Assistant add-on (`netbox/`). The add-on bundles the upstream NetBox Docker image together with PostgreSQL and Redis so that Home Assistant power users can deploy a fully featured IPAM/DCIM stack without managing multiple containers.
 
+[![Add repository on my Home Assistant][repository-badge]][repository-url]
+
 ## Layout
 
 ```text
@@ -19,7 +21,7 @@ This repository hosts the NetBox Home Assistant add-on (`netbox/`). The add-on b
 └── .github/workflows/build.yml
 ```
 
-## Getting Started
+## Contributing
 
 1. Fork/clone this repository.
 2. Update `repository.json` with your GitHub URL if you plan to publish under a different namespace.
@@ -34,3 +36,6 @@ This repository hosts the NetBox Home Assistant add-on (`netbox/`). The add-on b
 - **Publish** – the GitHub Actions workflow builds multi-arch images (amd64 + arm64) and pushes to `ghcr.io/boecht/ha-addon-netbox/netbox-{arch}`.
 
 For full configuration, upgrade, and troubleshooting guidance refer to `netbox/DOCS.md`.
+
+[repository-badge]: <https://img.shields.io/badge/Add%20repository%20to%20my-Home%20Assistant-41BDF5?logo=home-assistant&style=for-the-badge>
+[repository-url]: <https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fboecht%2Fha-addon-netbox>

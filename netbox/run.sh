@@ -18,7 +18,7 @@ REDIS_CONF=/tmp/redis-netbox.conf
 REDIS_DATA_DIR=${REDIS_DATA_DIR:-/data/redis}
 
 # Runtime defaults
-DEFAULT_PLUGINS_JSON='["netbox_topology_views","netbox_dns","netbox_ping"]'
+DEFAULT_PLUGINS_JSON='["netbox_napalm_plugin","netbox_ping","netbox_topology_views"]'
 DEFAULT_SUPERUSER_FLAG=/data/.superuser_initialized
 NETBOX_USER=${NETBOX_USER:-netbox}
 
@@ -345,18 +345,6 @@ PY
     log_info "Reset complete; please toggle reset_superuser off in the add-on UI."
 }
 
-warn_default_token() {
-  run_warn "Checking for default admin API token" netbox_manage shell --interface python <<'PY'
-from users.models import Token
-try:
-    Token.objects.get(key="0123456789abcdef0123456789abcdef01234567")
-except Token.DoesNotExist:
-    pass
-else:
-    print("⚠️  Warning: default admin API token still present; delete it via the NetBox UI.")
-PY
-}
-
 log_active_plugins() {
     log_debug "Querying NetBox for active plugin list"
   run_warn "Reading NetBox settings.PLUGINS" netbox_manage shell --interface python <<'PY'
@@ -405,7 +393,7 @@ if [[ "${DEBUG_LOGGING,,}" == "true" ]]; then
 else
     LOG_LEVEL="info"
 fi
-log "Log level set to ${LOG_LEVEL^^} (debug_logging=${DEBUG_LOGGING,,})"
+log_info "Log level set to ${LOG_LEVEL^^} (debug_logging=${DEBUG_LOGGING,,})"
 SECRET_KEY=$(ensure_secret "" "/data/.secret_key" 64)
 ALLOWED_HOSTS=$(read_allowed_hosts)
 HOST_TZ=$(detect_host_timezone)
@@ -568,7 +556,6 @@ log_new_section "Running NetBox maintenance tasks"
 run_housekeeping_if_needed
 ensure_superuser_exists
 reset_superuser_if_requested
-warn_default_token
 log_active_plugins
 
 log_new_section "Launching NetBox"

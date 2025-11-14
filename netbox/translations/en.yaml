@@ -25,6 +25,6 @@ configuration:
     name: NetBox plugins
     description: >
       Comma-separated plugin module names to enable. Available choices:
-      netbox_topology_views, netbox_dns, netbox_ping. Leave blank to disable all.
+      netbox_napalm_plugin, netbox_ping, netbox_topology_views. Leave blank to disable all.
 network:
   8080/tcp: NetBox web UI
