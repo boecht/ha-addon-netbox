@@ -26,20 +26,23 @@ jobs:
             platform: linux/arm64
     env:
       REGISTRY: ghcr.io
+      NETBOX_BASE_VERSION: v4.4.6-3.4.2
+      NETBOX_BASE_DIGEST: sha256:150fb9808d633712a75ad57ba364fa38caab3a88d123c470967fd3b9b2f32d9c
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
 
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
+        id: buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -51,8 +54,41 @@ jobs:
           version=$(grep '^version:' netbox/config.yaml | head -1 | awk '{print $2}' | tr -d '"')
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
+      - name: Summarize build inputs
+        env:
+          ARCH_SLUG: ${{ matrix.arch_slug }}
+          PLATFORM: ${{ matrix.platform }}
+          VERSION: ${{ steps.version.outputs.version }}
+          BASE_VERSION: ${{ env.NETBOX_BASE_VERSION }}
+          BASE_DIGEST: ${{ env.NETBOX_BASE_DIGEST }}
+        run: |
+          base_image=$(python3 - <<'PY'
+            import os
+            from pathlib import Path
+            arch = os.environ["ARCH_SLUG"]
+            with open("netbox/build.yaml") as f:
+                lines = [line.strip() for line in f]
+            needle = f"{arch}:"
+            for line in lines:
+                if line.startswith(needle):
+                    print(line.split(":", 1)[1].strip())
+                    break
+            else:
+                raise SystemExit(f"Base image for {arch} not found")
+            PY
+            )
+          echo "Building NetBox add-on ${VERSION} for ${ARCH_SLUG} (${PLATFORM})"
+          echo "Latest upstream NetBox base: ${BASE_VERSION} (${BASE_DIGEST})"
+          echo "ARCH-specific base image reference: ${base_image}"
+
+      - name: Run Dockerfile checks
+        env:
+          BUILDER_NAME: ${{ steps.buildx.outputs.name }}
+        run: |
+          docker buildx build --builder "$BUILDER_NAME" --check --progress plain -f netbox/Dockerfile netbox
+
       - name: Build and push ${{ matrix.arch_slug }} image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: ./netbox
           file: netbox/Dockerfile
@@ -62,7 +98,7 @@ jobs:
             ${{ env.REGISTRY }}/boecht/ha-addon-netbox/netbox-${{ matrix.arch_slug }}:${{ steps.version.outputs.version }}
             ${{ env.REGISTRY }}/boecht/ha-addon-netbox/netbox-${{ matrix.arch_slug }}:latest
           build-args: |
-            BUILD_FROM=ghcr.io/netbox-community/netbox:v4.4.6-3.4.2
+            BUILD_FROM=ghcr.io/netbox-community/netbox:${{ env.NETBOX_BASE_VERSION }}@${{ env.NETBOX_BASE_DIGEST }}
 
       - name: Tag commit with add-on version
         if: github.event_name != 'pull_request' && matrix.arch_slug == 'amd64'
@@ -76,7 +112,7 @@ jobs:
 
       - name: Upload artifact (PR builds)
         if: github.event_name == 'pull_request' && matrix.arch_slug == 'amd64'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: netbox-image-digest
           path: "${{ github.workspace }}/netbox"
