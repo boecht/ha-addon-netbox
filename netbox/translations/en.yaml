@@ -18,6 +18,11 @@ configuration:
     name: Enable Prometheus metrics
     description: >
       Expose NetBox metrics at /metrics for scraping. Disable if you do not scrape metrics to minimize attack surface.
+  debug_logging:
+    name: Debug logging
+    description: >
+      Emit verbose DEBUG logs from the embedded supervisor script. Leave enabled while troubleshooting. Turn off to reduce
+      noise in the Supervisor log.
   plugins:
     name: NetBox plugins
     description: >

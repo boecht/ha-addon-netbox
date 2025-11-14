@@ -1,5 +1,7 @@
+# Home Assistant add-on manifest for NetBox. Defines metadata, runtime options, and defaults
+# consumed by Supervisor when rendering the configuration UI.
 name: "NetBox"
-version: "0.1.17"
+version: "0.1.18"
 slug: "netbox"
 description: "Network asset management tool"
 arch:
@@ -13,6 +15,7 @@ panel_icon: mdi:table-network
 image: "ghcr.io/boecht/ha-addon-netbox/netbox-{arch}"
 ports:
   8080/tcp: 8000
+# Supervisor UI labels for exposed ports.
 ports_description:
   8080/tcp: "NetBox web UI (container port 8080)"
 watchdog: "http://[HOST]:[PORT:8000]/health/"
@@ -25,21 +28,26 @@ map:
     read_only: false
   - type: config
     read_only: false
+# User-facing options shown on the Configuration tab.
 options:
   reset_superuser: false
   allowed_hosts:
     - "*"
   housekeeping_interval: 3600
   enable_prometheus: false
+  debug_logging: true
   plugins:
     - netbox_topology_views
     - netbox_dns
     - netbox_ping
+
+# Validation schema for the options above.
 schema:
   reset_superuser: bool
   allowed_hosts:
     - str
   housekeeping_interval: int(300,86400)
   enable_prometheus: bool
+  debug_logging: bool
   plugins:
     - str?
