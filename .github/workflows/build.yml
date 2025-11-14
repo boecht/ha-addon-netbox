@@ -62,21 +62,7 @@ jobs:
           BASE_VERSION: ${{ env.NETBOX_BASE_VERSION }}
           BASE_DIGEST: ${{ env.NETBOX_BASE_DIGEST }}
         run: |
-          base_image=$(python3 - <<'PY'
-            import os
-            from pathlib import Path
-            arch = os.environ["ARCH_SLUG"]
-            with open("netbox/build.yaml") as f:
-                lines = [line.strip() for line in f]
-            needle = f"{arch}:"
-            for line in lines:
-                if line.startswith(needle):
-                    print(line.split(":", 1)[1].strip())
-                    break
-            else:
-                raise SystemExit(f"Base image for {arch} not found")
-            PY
-            )
+          base_image=$(yq -r ".build_from.${ARCH_SLUG}" netbox/build.yaml)
           echo "Building NetBox add-on ${VERSION} for ${ARCH_SLUG} (${PLATFORM})"
           echo "Latest upstream NetBox base: ${BASE_VERSION} (${BASE_DIGEST})"
           echo "ARCH-specific base image reference: ${base_image}"
