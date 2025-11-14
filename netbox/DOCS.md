@@ -46,7 +46,7 @@ Use Home Assistant snapshots or copy `/addon_local/netbox/` to back up NetBox. R
 
 ## Networking
 
-- Default TCP port: **8000** (plain HTTP). Change the port mapping from the add-on Info tab if needed or front it with an Nginx/Caddy proxy for HTTPS.
+- Default access: via Home Assistant Ingress (click **Open Web UI**). The add-on still exposes TCP **8000** for optional direct access; change or disable the port mapping from the Info tab if you prefer Ingress-only.
 - Health check: `http://[HOST]:[PORT:8000]/health/` (used by the Supervisor watchdog).
 - Redis/PostgreSQL listen on localhost inside the container and are not exposed.
 
