@@ -2,22 +2,27 @@ configuration:
   reset_superuser:
     name: Reset admin credentials
     description: >
-      Create or reset the NetBox admin user to admin/admin on next start. Turn off again after you log in.
+      Create or reset the NetBox admin user to admin/admin on next start. Turn off again after you log in to avoid
+      locking out your production account.
   allowed_hosts:
     name: Allowed hosts
     description: >
       Hosts allowed to reach NetBox (comma-separated hostnames, IPs, or wildcards, e.g. homeassistant.local,
-      192.168.1.10, *.example.com). CIDR ranges like 10.3.2.0/24 are not supported. Set * to allow any host on your LAN.
+      192.168.1.10, *.example.com). CIDR ranges like 10.3.2.0/24 are not supported. Set * to allow any host on your LAN,
+      but prefer explicit hostnames for better security.
   housekeeping_interval:
     name: Housekeeping interval
     description: >
-      Seconds between NetBox housekeeping jobs (default 3600).
+      Seconds between NetBox housekeeping jobs (default 3600). Lower values keep the database tidier but increase load.
   enable_prometheus:
     name: Enable Prometheus metrics
     description: >
-      Expose NetBox metrics at /metrics for scraping.
+      Expose NetBox metrics at /metrics for scraping. Disable if you do not scrape metrics to minimize attack surface.
   plugins:
     name: NetBox plugins
     description: >
       Comma-separated plugin module names to enable (e.g. netbox_topology_views, netbox_dns). Bundled choices:
-      netbox_topology_views, netbox_dns, netbox_ping. Leave blank to disable all.
+      netbox_topology_views, netbox_dns, netbox_ping. The listed modules are pre-installed; any others must already be in
+      your custom image. Restart the add-on after changing this list. Leave blank to disable all.
+network:
+  8080/tcp: NetBox web UI (maps to add-on port 8000)
