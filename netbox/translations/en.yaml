@@ -2,14 +2,13 @@ configuration:
   reset_superuser:
     name: Reset admin credentials
     description: >
-      Create or reset the NetBox admin user to admin/admin on next start. Turn off again after you log in to avoid
-      locking out your production account.
+      Set NetBox superuser to admin/admin on next start. Turn off again after you log in and change them.
   allowed_hosts:
     name: Allowed hosts
     description: >
-      Hosts allowed to reach NetBox (comma-separated hostnames, IPs, or wildcards, e.g. homeassistant.local,
-      192.168.1.10, *.example.com). CIDR ranges like 10.3.2.0/24 are not supported. Set * to allow any host on your LAN,
-      but prefer explicit hostnames for better security.
+      Hosts that can connect to NetBox (comma-separated hostnames, IPs, or leading dot wildcards, e.g. homeassistant.local,
+      192.168.1.10, [2001:db8::1], .local). CIDR ranges like 10.3.2.0/24 or wildcards in IP addresses
+      like 192.168.1.* are NOT supported. Set * to allow any host on your LAN.
   housekeeping_interval:
     name: Housekeeping interval
     description: >
@@ -17,17 +16,15 @@ configuration:
   enable_prometheus:
     name: Enable Prometheus metrics
     description: >
-      Expose NetBox metrics at /metrics for scraping. Disable if you do not scrape metrics to minimize attack surface.
+      Expose NetBox metrics at /metrics for scraping.
   debug_logging:
     name: Debug logging
     description: >
-      Emit verbose DEBUG logs from the embedded supervisor script. Leave enabled while troubleshooting. Turn off to reduce
-      noise in the Supervisor log.
+      Emit verbose DEBUG logs from the embedded supervisor script.
   plugins:
     name: NetBox plugins
     description: >
-      Comma-separated plugin module names to enable (e.g. netbox_topology_views, netbox_dns). Bundled choices:
-      netbox_topology_views, netbox_dns, netbox_ping. The listed modules are pre-installed; any others must already be in
-      your custom image. Restart the add-on after changing this list. Leave blank to disable all.
+      Comma-separated plugin module names to enable. Available choices:
+      netbox_topology_views, netbox_dns, netbox_ping. Leave blank to disable all.
 network:
-  8080/tcp: NetBox web UI (maps to add-on port 8000)
+  8080/tcp: NetBox web UI
