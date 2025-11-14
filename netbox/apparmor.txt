@@ -26,9 +26,11 @@ profile ha-addon-netbox flags=(attach_disconnected,mediate_deleted) {
   /opt/**              mrwix,
   /data/**             mrwlkix,
   /run/**              mrwlkix,
+  /dev/shm/**          mrwlkix,
   /tmp/**              mrwlkix,
   /etc/netbox/**       mrwlkix,
   /var/log/**          mrwlkix,
+  /var/lib/postgresql/** mrwlkix,
   /proc/*              r,
   @{HOME}/**           mrwlkix,
 
