@@ -45,8 +45,8 @@ RUN if ! id -u netbox >/dev/null 2>&1; then \
 
 # Install extra NetBox plugins that the add-on exposes as defaults. Versions are pinned
 # for reproducibility across architectures.
-RUN --mount=type=bind,from=get-pip,source=/get-pip.py,target=/tmp/getpip \
-    /opt/netbox/venv/bin/python /tmp/getpip/get-pip.py \
+RUN --mount=type=bind,from=get-pip,source=/get-pip.py,target=/tmp/getpip.py \
+    /opt/netbox/venv/bin/python /tmp/getpip.py \
     && /opt/netbox/venv/bin/pip install --no-cache-dir \
     netbox-ping==0.54 \
     netbox-plugin-dns==1.4.3 \
