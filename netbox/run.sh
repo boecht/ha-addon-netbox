@@ -1,6 +1,6 @@
+#!/usr/bin/env bash
 # NetBox Home Assistant add-on entrypoint: brings up PostgreSQL, Redis, and the upstream
 # NetBox stack inside one container while honoring Supervisor configuration.
-#!/usr/bin/env bash
 set -euo pipefail
 
 # Logging & instrumentation
