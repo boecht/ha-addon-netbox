@@ -26,8 +26,6 @@ jobs:
             platform: linux/arm64
     env:
       REGISTRY: ghcr.io
-      NETBOX_BASE_VERSION: v4.4.6-3.4.2
-      NETBOX_BASE_DIGEST: sha256:150fb9808d633712a75ad57ba364fa38caab3a88d123c470967fd3b9b2f32d9c
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -49,55 +47,70 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Read add-on version
-        id: version
+        id: addon_version
         run: |
           version=$(grep '^version:' netbox/config.yaml | head -1 | awk '{print $2}' | tr -d '"')
           echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      # versions.yaml is the single source of truth (updated via scripts/sync_versions.py)
+      - name: Load NetBox metadata
+        id: netbox_version
+        run: |
+          NETBOX_VERSION=$(yq -r '.netbox.version' versions.yaml)
+          NETBOX_DIGEST=$(yq -r '.netbox.digest_index' versions.yaml)
+          {
+            echo "netbox_version=${NETBOX_VERSION}"
+            echo "netbox_digest=${NETBOX_DIGEST}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Summarize build inputs
         env:
           ARCH_SLUG: ${{ matrix.arch_slug }}
           PLATFORM: ${{ matrix.platform }}
-          VERSION: ${{ steps.version.outputs.version }}
-          BASE_VERSION: ${{ env.NETBOX_BASE_VERSION }}
-          BASE_DIGEST: ${{ env.NETBOX_BASE_DIGEST }}
+          ADDON_VERSION: ${{ steps.addon_version.outputs.version }}
+          NETBOX_VERSION: ${{ steps.netbox_version.outputs.netbox_version }}
+          NETBOX_DIGEST: ${{ steps.netbox_version.outputs.netbox_digest }}
         run: |
           base_image=$(yq -r ".build_from.${ARCH_SLUG}" netbox/build.yaml)
-          echo "Building NetBox add-on ${VERSION} for ${ARCH_SLUG} (${PLATFORM})"
-          echo "Latest upstream NetBox base: ${BASE_VERSION} (${BASE_DIGEST})"
+          echo "Add-on version: ${ADDON_VERSION}"
+          echo "Target architecture: ${ARCH_SLUG} (${PLATFORM})"
+          echo "NetBox base image: ${NETBOX_VERSION} (${NETBOX_DIGEST})"
           echo "ARCH-specific base image reference: ${base_image}"
 
       - name: Run Dockerfile checks
         env:
           BUILDER_NAME: ${{ steps.buildx.outputs.name }}
-          BASE_VERSION: ${{ env.NETBOX_BASE_VERSION }}
-          BASE_DIGEST: ${{ env.NETBOX_BASE_DIGEST }}
+          NETBOX_VERSION: ${{ steps.netbox_version.outputs.netbox_version }}
+          NETBOX_DIGEST: ${{ steps.netbox_version.outputs.netbox_digest }}
         run: |
           docker buildx build \
             --builder "$BUILDER_NAME" \
             --check \
             --progress plain \
             -f netbox/Dockerfile \
-            --build-arg BUILD_FROM="ghcr.io/netbox-community/netbox:${BASE_VERSION}@${BASE_DIGEST}" \
+            --build-arg BUILD_FROM="ghcr.io/netbox-community/netbox:${NETBOX_VERSION}@${NETBOX_DIGEST}" \
             netbox
 
       - name: Build and push ${{ matrix.arch_slug }} image
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          NETBOX_VERSION: ${{ steps.netbox_version.outputs.netbox_version }}
+          NETBOX_DIGEST: ${{ steps.netbox_version.outputs.netbox_digest }}
         with:
           context: ./netbox
           file: netbox/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           platforms: ${{ matrix.platform }}
           tags: |
-            ${{ env.REGISTRY }}/boecht/ha-addon-netbox/netbox-${{ matrix.arch_slug }}:${{ steps.version.outputs.version }}
+            ${{ env.REGISTRY }}/boecht/ha-addon-netbox/netbox-${{ matrix.arch_slug }}:${{ steps.addon_version.outputs.version }}
             ${{ env.REGISTRY }}/boecht/ha-addon-netbox/netbox-${{ matrix.arch_slug }}:latest
           build-args: |
-            BUILD_FROM=ghcr.io/netbox-community/netbox:${{ env.NETBOX_BASE_VERSION }}@${{ env.NETBOX_BASE_DIGEST }}
+            BUILD_FROM=ghcr.io/netbox-community/netbox:${NETBOX_VERSION}@${NETBOX_DIGEST}
 
       - name: Tag commit with add-on version
         if: github.event_name != 'pull_request' && matrix.arch_slug == 'amd64'
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          VERSION: ${{ steps.addon_version.outputs.version }}
         run: |
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
@@ -110,3 +123,6 @@ jobs:
         with:
           name: netbox-image-digest
           path: "${{ github.workspace }}/netbox"
+
+      - name: Validate pinned versions
+        run: python3 scripts/sync_versions.py --check
