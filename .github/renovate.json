@@ -1,0 +1,46 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base"
+  ],
+  "regexManagers": [
+    {
+      "fileMatch": ["versions\\.yaml"],
+      "matchStrings": [
+        "netbox:\\s*\\n(?:.*\\n)*?version:\\s*(?<currentValue>v[0-9.-]+)"
+      ],
+      "depNameTemplate": "netbox-community/netbox",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "fileMatch": ["versions\\.yaml"],
+      "matchStrings": [
+        "netbox_topology_views:\\s*\\n\\s*version:\\s*(?<currentValue>[0-9.]+)"
+      ],
+      "depNameTemplate": "netbox-topology-views",
+      "datasourceTemplate": "pypi"
+    },
+    {
+      "fileMatch": ["versions\\.yaml"],
+      "matchStrings": [
+        "netbox_ping:\\s*\\n\\s*version:\\s*(?<currentValue>[0-9.]+)"
+      ],
+      "depNameTemplate": "netbox-ping",
+      "datasourceTemplate": "pypi"
+    },
+    {
+      "fileMatch": ["versions\\.yaml"],
+      "matchStrings": [
+        "netbox_napalm_plugin:\\s*\\n\\s*version:\\s*(?<currentValue>[0-9.]+)"
+      ],
+      "depNameTemplate": "netbox-napalm-plugin",
+      "datasourceTemplate": "pypi"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["regex"],
+      "labels": ["dependencies"]
+    }
+  ]
+}
