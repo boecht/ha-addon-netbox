@@ -1,0 +1,17 @@
+netbox:
+  version: v4.4.6-3.4.2
+  digest_index: sha256:150fb9808d633712a75ad57ba364fa38caab3a88d123c470967fd3b9b2f32d9c
+  digests:
+    amd64: sha256:59b825c5d485b909f14f83c07cca35d78736cd4c29a6c08d651d09c8e01a30d9
+    aarch64: sha256:c5f907c6f7cdb4e7cabf7fbacbad3c0c91e00e594586584670a74e4803d20549
+  registry: https://github.com/netbox-community/netbox-docker/pkgs/container/netbox
+plugins:
+  netbox_napalm_plugin:
+    version: 0.3.3
+    pypi: https://pypi.org/project/netbox-napalm-plugin/
+  netbox_ping:
+    version: 0.54
+    pypi: https://pypi.org/project/netbox-ping/
+  netbox_topology_views:
+    version: 4.4.0
+    pypi: https://pypi.org/project/netbox-topology-views/

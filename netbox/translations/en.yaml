@@ -1,0 +1,42 @@
+configuration:
+  reset_superuser:
+    name: Reset admin credentials
+    description: >
+      Set NetBox superuser to admin/admin on next start. Turn off again after you log in and change them.
+  allowed_hosts:
+    name: Allowed hosts
+    description: >
+      Hosts that can connect to NetBox (comma-separated hostnames, IPs, or leading dot wildcards, e.g. homeassistant.local,
+      192.168.1.10, [2001:db8::1], .local). CIDR ranges like 10.3.2.0/24 or wildcards in IP addresses
+      like 192.168.1.* are NOT supported. Set * to allow any host on your LAN.
+  housekeeping_interval:
+    name: Housekeeping interval
+    description: >
+      Seconds between NetBox housekeeping jobs (default 3600). Lower values keep the database tidier but increase load.
+  enable_prometheus:
+    name: Enable Prometheus metrics
+    description: >
+      Expose NetBox metrics at /metrics for scraping.
+  debug_logging:
+    name: Debug logging
+    description: >
+      Emit verbose DEBUG logs from the embedded supervisor script.
+  plugins:
+    name: NetBox plugins
+    description: >
+      Comma-separated plugin module names to enable. Available choices:
+      netbox_napalm_plugin, netbox_ping, netbox_topology_views. Leave blank to disable all.
+  napalm_username:
+    name: NAPALM username
+    description: >
+      Username NetBox will use for NAPALM device logins. Required when netbox_napalm_plugin is enabled.
+  napalm_password:
+    name: NAPALM password
+    description: >
+      Password for the configured NAPALM username. Leave blank if you rely on SSH keys or other auth.
+  napalm_timeout:
+    name: NAPALM timeout (seconds)
+    description: >
+      Timeout (in seconds) for NAPALM device calls. Increase if devices sit on high-latency links.
+network:
+  8080/tcp: NetBox web UI
