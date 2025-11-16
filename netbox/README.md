@@ -9,7 +9,7 @@ Bring NetBox’s full IPAM/DCIM toolkit to your Home Assistant instance with a s
 - **Ready for updates** – pinned upstream NetBox image and GitHub Actions workflow produce multi-arch images for `amd64` and `aarch64`.
 - **Supervisor friendly** – supports snapshots, watchdog, persistent storage, and the Home Assistant UI lifecycle controls.
 
-Use the _Documentation_ tab for setup details, config examples, and troubleshooting tips. When you’re ready, click **Start** to launch NetBox, then open `http://<home-assistant-host>:8000/` (or whatever port you mapped) from your browser or embed it through a simple `panel_iframe`.
+Use the _Documentation_ tab for setup details, config examples, and troubleshooting tips. When you’re ready, click **Start** to launch NetBox, then open `http://<home-assistant-host>:8080/` (or whatever port you mapped) from your browser or embed it through a simple `panel_iframe`.
 
 ## How it works
 

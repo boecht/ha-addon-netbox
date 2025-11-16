@@ -8,7 +8,7 @@ NetBox is the open-source IP address management (IPAM) and data-center infrastru
 2. Open **NetBox** in the store and click **Install**.
 3. Review the **Configuration** tab. The defaults work for most installs, but you can tailor the options below before first boot.
 4. Hit **Start**. The first boot initializes PostgreSQL, Redis, runs NetBox migrations, and reconciles the admin user. This can take a few minutes on ARM devices.
-5. Open the Web UI on `http://<home-assistant-host>:8000/` (or the port you exposed via the Info tab or your reverse proxy) and sign in with the default admin credentials (`admin` / `admin`). Change them immediately inside NetBox.
+5. Open the Web UI on `http://<home-assistant-host>:8080/` (or the port you exposed via the Info tab or your reverse proxy) and sign in with the default admin credentials (`admin` / `admin`). Change them immediately inside NetBox.
 
 ## Configuration
 

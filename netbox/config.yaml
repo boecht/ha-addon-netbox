@@ -18,8 +18,8 @@ ports:
 # Supervisor UI labels for exposed ports.
 ports_description:
   8080/tcp: "NetBox web UI (container port 8080)"
-watchdog: "http://[HOST]:[PORT:8000]/health/"
-webui: "http://[HOST]:[PORT:8000]/"
+watchdog: "http://[HOST]:[PORT:8080]/health/"
+webui: "http://[HOST]:[PORT:8080]/"
 host_network: false
 apparmor: true
 map:
