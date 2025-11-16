@@ -31,7 +31,7 @@ _log() {
 log_critical() {
     _log "$1" "CRITICAL"
     trap - ERR
-    exit 1 
+    exit 1
 }
 
 log_error() {
@@ -312,9 +312,9 @@ user.email = email
 user.save()
 print("✅ Created default NetBox admin user (admin/admin)")
 PY
-  then
-      log_critical "Failed to create default NetBox admin user"
-  fi
+    then
+        log_critical "Failed to create default NetBox admin user"
+    fi
     touch "$DEFAULT_SUPERUSER_FLAG"
 }
 
@@ -339,9 +339,9 @@ user.set_password(password)
 user.save()
 print("✅ NetBox admin credentials reset; please change them inside NetBox.")
 PY
-  then
-      log_critical "Failed to reset NetBox admin credentials"
-  fi
+    then
+        log_critical "Failed to reset NetBox admin credentials"
+    fi
     log_info "Reset complete; please toggle reset_superuser off in the add-on UI."
 }
 

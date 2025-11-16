@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Sync pinned NetBox/plugin versions from versions.yaml into build artifacts."""
+
 from __future__ import annotations
 
 import argparse
@@ -29,7 +30,9 @@ def load_versions() -> Dict:
     return yaml.safe_load(VERSIONS_FILE.read_text())
 
 
-def rewrite_file(path: Path, new_content: str, check: bool, changed: List[Path]) -> None:
+def rewrite_file(
+    path: Path, new_content: str, check: bool, changed: List[Path]
+) -> None:
     current = path.read_text()
     if current == new_content:
         return
@@ -91,7 +94,9 @@ def update_changelog(data: Dict) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--check", action="store_true", help="only verify files are in sync")
+    parser.add_argument(
+        "--check", action="store_true", help="only verify files are in sync"
+    )
     args = parser.parse_args()
 
     data = load_versions()

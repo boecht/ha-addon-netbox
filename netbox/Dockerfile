@@ -10,8 +10,8 @@ ADD --checksum=sha256:dffc3658baada4ef383f31c3c672d4e5e306a6e376cee8bee5dbdf1385
 FROM ${BUILD_FROM}
 
 LABEL org.opencontainers.image.title="NetBox Home Assistant Add-on" \
-      org.opencontainers.image.source="https://github.com/boecht/ha-addon-netbox" \
-      org.opencontainers.image.licenses="Apache-2.0"
+    org.opencontainers.image.source="https://github.com/boecht/ha-addon-netbox" \
+    org.opencontainers.image.licenses="Apache-2.0"
 
 USER root
 
@@ -51,7 +51,7 @@ RUN --mount=type=bind,from=get-pip,source=/get-pip.py,target=/tmp/getpip.py \
     \g<1>0.3.3\
     \g<1>0.54\
     \g<1>4.4.0
-    
+
 # Home Assistant entrypoint takes over from upstream to orchestrate services.
 COPY run.sh /usr/local/bin/addon-run.sh
 RUN chmod +x /usr/local/bin/addon-run.sh
