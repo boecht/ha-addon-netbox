@@ -39,8 +39,8 @@ options:
     - netbox_napalm_plugin
     - netbox_ping
     - netbox_topology_views
-  napalm_username: ""
-  napalm_password: ""
+  napalm_username: "admin"
+  napalm_password: "admin"
   napalm_timeout: 30
 
 # Validation schema for the options above.
