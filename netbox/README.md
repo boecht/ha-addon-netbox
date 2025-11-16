@@ -8,9 +8,8 @@ Bring NetBox’s full IPAM/DCIM toolkit to your Home Assistant instance with a s
 - **Secure by default** – database credentials, Django secrets, and API tokens are auto-generated and stored in `/data`.
 - **Ready for updates** – pinned upstream NetBox image and GitHub Actions workflow produce multi-arch images for `amd64` and `aarch64`.
 - **Supervisor friendly** – supports snapshots, watchdog, persistent storage, and the Home Assistant UI lifecycle controls.
-- **Ingress + AppArmor** – exposes NetBox via Home Assistant Ingress out of the box and ships with an AppArmor profile so the add-on surfaces a better security score.
 
-Use the _Documentation_ tab for setup details, config examples, and troubleshooting tips. When you’re ready, click **Start** to launch NetBox, then use **Open Web UI** (Ingress) or port `8000` if you still expose the add-on externally.
+Use the _Documentation_ tab for setup details, config examples, and troubleshooting tips. When you’re ready, click **Start** to launch NetBox, then open `http://<home-assistant-host>:8000/` (or whatever port you mapped) from your browser or embed it through a simple `panel_iframe`.
 
 ## How it works
 

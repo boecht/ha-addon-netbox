@@ -8,7 +8,7 @@ NetBox is the open-source IP address management (IPAM) and data-center infrastru
 2. Open **NetBox** in the store and click **Install**.
 3. Review the **Configuration** tab. The defaults work for most installs, but you can tailor the options below before first boot.
 4. Hit **Start**. The first boot initializes PostgreSQL, Redis, runs NetBox migrations, and reconciles the admin user. This can take a few minutes on ARM devices.
-5. Open the Web UI on `http://<home-assistant-host>:8000/` (or expose via Ingress/reverse proxy) and sign in with the default admin credentials (`admin` / `admin`). Change them immediately inside NetBox.
+5. Open the Web UI on `http://<home-assistant-host>:8000/` (or the port you exposed via the Info tab or your reverse proxy) and sign in with the default admin credentials (`admin` / `admin`). Change them immediately inside NetBox.
 
 ## Configuration
 
@@ -46,7 +46,7 @@ Use Home Assistant snapshots or copy `/addon_local/netbox/` to back up NetBox. R
 
 ## Networking
 
-- Default access: via Home Assistant Ingress (click **Open Web UI**). The add-on still exposes TCP **8000** for optional direct access; change or disable the port mapping from the Info tab if you prefer Ingress-only.
+- Default access: HTTP on TCP **8000** (change or disable the port mapping from the Info tab). Add your own reverse proxy or panel_iframe entry if you want NetBox embedded in the HA sidebar.
 - Health check: `http://[HOST]:[PORT:8000]/health/` (used by the Supervisor watchdog).
 - Redis/PostgreSQL listen on localhost inside the container and are not exposed.
 
@@ -64,7 +64,7 @@ Use Home Assistant snapshots or copy `/addon_local/netbox/` to back up NetBox. R
 | Web UI loads but login fails            | Confirm you’re using the NetBox admin credentials you set inside the Web UI. If in doubt, toggle `reset_superuser` and restart once to restore `admin` / `admin`. |
 | “Database connection refused” errors    | Check Supervisor logs for PostgreSQL initialization messages. Deleting `/data/postgres` forces a re-init (you’ll lose data).                              |
 | Watchdog keeps restarting the add-on    | Visit `/health/` in your browser. If it returns anything but `200 OK`, inspect `/config/netbox.log` (Supervisor Logs tab) for migration or plugin errors. |
-| Need to expose NetBox via HTTPS/Ingress | Place a reverse proxy (e.g., Nginx Proxy Manager add-on) in front of port 8000 or configure HA’s Ingress with your own auth.                              |
+| Need to expose NetBox via HTTPS | Place a reverse proxy (e.g., Nginx Proxy Manager add-on) in front of port 8000 or terminate TLS on your network edge.                               |
 
 ## Support & feedback
 

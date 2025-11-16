@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0] - Upcoming
+## [1.0.0] - 2025-11-16
 
 - Ships NetBox v4.4.6 (container tag `v4.4.6-3.4.2`).
 - Bundled plugins:
