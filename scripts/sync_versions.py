@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import re
 from pathlib import Path
 from typing import Dict, List
@@ -54,8 +53,8 @@ def update_dockerfile(data: Dict) -> str:
     )
     for plugin, pip_name in PLUGIN_PIP_NAMES.items():
         version = data["plugins"][plugin]["version"]
-        pattern = rf"({re.escape(pip_name)}==)[^\\s\\\\]+"
-        text = re.sub(pattern, rf"\\g<1>{version}", text, count=1)
+        pattern = rf"({re.escape(pip_name)}==)[^\s\\]+"
+        text = re.sub(pattern, rf"\g<1>{version}", text, count=1)
     return text
 
 
@@ -64,13 +63,13 @@ def update_build_yaml(data: Dict) -> str:
     version = data["netbox"]["version"]
     text = re.sub(
         r"(amd64:\s+ghcr\.io/netbox-community/netbox:)\S+",
-        rf"\\1{version}",
+        rf"\1{version}",
         text,
         count=1,
     )
     text = re.sub(
         r"(aarch64:\s+ghcr\.io/netbox-community/netbox:)\S+",
-        rf"\\1{version}",
+        rf"\1{version}",
         text,
         count=1,
     )

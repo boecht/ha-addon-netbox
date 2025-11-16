@@ -48,9 +48,9 @@ RUN if ! id -u netbox >/dev/null 2>&1; then \
 RUN --mount=type=bind,from=get-pip,source=/get-pip.py,target=/tmp/getpip.py \
     /opt/netbox/venv/bin/python /tmp/getpip.py \
     && /opt/netbox/venv/bin/pip install --no-cache-dir \
-    \g<1>0.3.3\
-    \g<1>0.54\
-    \g<1>4.4.0
+    netbox-napalm-plugin==0.3.3 \
+    netbox-ping==0.54 \
+    netbox-topology-views==4.4.0
 
 # Home Assistant entrypoint takes over from upstream to orchestrate services.
 COPY run.sh /usr/local/bin/addon-run.sh

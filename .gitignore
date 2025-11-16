@@ -1,2 +1,48 @@
+# Python bytecode and cache
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+*.egg-info
+
+# Virtual environments
+.venv/
+.Python
+lib/
+lib64/
+var/
+
+# Build artifacts
+build/
+dist/
+sdist/
+wheels/
+parts/
+downloads/
+.installed.cfg
+MANIFEST
+artifacts/
+
+# Testing and coverage
+.*cache
+.coverage
+coverage.json
+coverage.xml
+htmlcov/
+.hypothesis/
+.benchmarks/
+megalinter-reports/
+
+# IDE and editor
+.vscode/*
+!.vscode/mcp.json
+.claude/
 .codacy/
 codacy*
+.serena/
+
+# Local configuration (private/personal)
+*.local.toml
+
+# Logs
+*.log
