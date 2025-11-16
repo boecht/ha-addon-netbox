@@ -2,12 +2,12 @@ name: Build and Publish NetBox Add-on
 
 on:
   push:
-    #branches: ["main"]
-    #tags: ["v*"]
-  #pull_request:
-  #paths:
-  #- "netbox/**"
-  #- ".github/workflows/build.yml"
+    branches: ["main"]
+    tags: ["v*"]
+  pull_request:
+    paths:
+    - "netbox/**"
+    - ".github/workflows/build.yml"
   workflow_dispatch:
 
 permissions:
@@ -81,6 +81,7 @@ jobs:
           echo "ARCH-specific base image reference: ${base_image}"
 
       - name: Run Dockerfile checks
+        if: github.event_name != 'pull_request' || matrix.arch_slug == 'amd64'
         env:
           BUILDER_NAME: ${{ steps.buildx.outputs.name }}
           NETBOX_VERSION: ${{ steps.netbox_version.outputs.netbox_version }}
@@ -95,6 +96,7 @@ jobs:
             netbox
 
       - name: Build and push ${{ matrix.arch_slug }} image
+        if: github.event_name != 'pull_request' || matrix.arch_slug == 'amd64'
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         env:
           NETBOX_VERSION: ${{ steps.netbox_version.outputs.netbox_version }}
@@ -111,7 +113,7 @@ jobs:
             BUILD_FROM=ghcr.io/netbox-community/netbox:${{ steps.netbox_version.outputs.netbox_version }}@${{ steps.netbox_version.outputs.netbox_digest }}
 
       - name: Tag commit with add-on version
-        if: github.event_name != 'pull_request' && matrix.arch_slug == 'amd64'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.arch_slug == 'amd64'
         env:
           VERSION: ${{ steps.addon_version.outputs.version }}
         run: |
@@ -119,10 +121,3 @@ jobs:
           git config user.email "${{ github.actor }}@users.noreply.github.com"
           git tag -f "$VERSION" "$GITHUB_SHA"
           git push origin --force "$VERSION"
-
-      - name: Upload artifact (PR builds)
-        if: github.event_name == 'pull_request' && matrix.arch_slug == 'amd64'
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
-        with:
-          name: netbox-image-digest
-          path: "${{ github.workspace }}/netbox"
