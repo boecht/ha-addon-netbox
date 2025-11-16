@@ -79,14 +79,15 @@ def update_build_yaml(data: Dict) -> str:
 def update_changelog(data: Dict) -> str:
     netbox_version = data["netbox"]["version"]
     netbox_release = netbox_version.split("-")[0]
-    lines = ["# Changelog", "", "## [1.0.0] - Upcoming", ""]
-    lines.append(f"- Ships NetBox {netbox_release} (container tag `{netbox_version}`).")
-    lines.append("- Bundled plugins:")
+    lines = ["# Changelog", "", "## [x.y.z] - date", ""]
+    lines.append(
+        f"- Update [`NetBox`](https://github.com/netbox-community/netbox) to {netbox_release} (container tag `{netbox_version}`)."
+    )
     for key in sorted(PLUGIN_PIP_NAMES):
         version = data["plugins"][key]["version"]
         pypi_url = data["plugins"][key]["pypi"]
         display_name = PLUGIN_PIP_NAMES[key]
-        lines.append(f"  - [`{display_name}`]({pypi_url}) v{version}")
+        lines.append(f"- Update [`{display_name}`]({pypi_url}) to v{version}")
     lines.append("")
     return "\n".join(lines)
 
