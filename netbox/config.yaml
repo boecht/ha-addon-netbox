@@ -34,7 +34,7 @@ options:
     - "*"
   housekeeping_interval: 3600
   enable_prometheus: false
-  debug_logging: true
+debug_logging: false
   plugins:
     - netbox_napalm_plugin
     - netbox_ping
