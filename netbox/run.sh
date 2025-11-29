@@ -373,15 +373,15 @@ PY
 
 run_housekeeping_if_needed() {
     if netbox_manage migrate --check >/dev/null 2>&1; then
+        log_info "Database already migrated; skipping housekeeping"
         return
     fi
     log_info "Applying database migrations"
     local plugins_backup="${PLUGINS_CONFIG_PATH}.bak"
-    local minimal_plugins='[]'
 
     # Phase 1: run migrations with all plugins except netbox_ping to avoid its early ObjectType dependency.
     log_info "Temporarily disabling netbox_ping for base migrations"
-    local plugins_filtered_json filtered_config
+    local plugins_filtered_json filtered_config plugins_config_json
     plugins_filtered_json=$(python3 - <<'PY'
 import json, os
 plugins_json = os.environ.get("PLUGINS", "[]")
@@ -393,6 +393,7 @@ filtered = [p for p in plugins if p != "netbox_ping"]
 print(json.dumps(filtered))
 PY
     )
+    log_debug "Base migrate plugins (netbox_ping removed): $plugins_filtered_json"
     cp "$PLUGINS_CONFIG_PATH" "$plugins_backup"
 
     # Load existing PLUGINS_CONFIG from backup so plugin configs (napalm) are preserved
@@ -403,6 +404,7 @@ pc = cfg.get("PLUGINS_CONFIG", {})
 print(json.dumps(pc))
 PY
     "$plugins_backup")
+    log_debug "Base migrate PLUGINS_CONFIG preserved: $plugins_config_json"
 
     filtered_config=$(PLUGINS="$plugins_filtered_json" PLUGINS_CONFIG_JSON="$plugins_config_json" python3 - <<'PY'
 import json, os
