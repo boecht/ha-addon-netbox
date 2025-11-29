@@ -121,6 +121,12 @@ sql_escape_literal() {
     printf '%s' "$input"
 }
 
+# Escapes an identifier for use in SQL (double-quotes doubled, wrapped in quotes)
+sql_escape_identifier() {
+    local input=${1//\"/\"\"}
+    printf '"%s"' "$input"
+}
+
 psql_admin() {
     local database="$1" socket_host
     shift
@@ -287,6 +293,22 @@ netbox_manage() {
     (cd /opt/netbox/netbox && /opt/netbox/venv/bin/python3 manage.py "$@")
 }
 
+# Ensure ObjectType row required by netbox-ping is present
+seed_ipaddress_objecttype() {
+    netbox_manage shell --interface python - <<'PY'
+from django.contrib.contenttypes.models import ContentType
+from core.models import ObjectType
+
+ct = ContentType.objects.get_by_natural_key("ipam", "ipaddress")
+obj, created = ObjectType.objects.get_or_create(
+    app_label="ipam",
+    model="ipaddress",
+    defaults={"content_type": ct},
+)
+print(f"ObjectType ipam.ipaddress present (created={created})")
+PY
+}
+
 ensure_superuser_exists() {
     if [[ -f "$DEFAULT_SUPERUSER_FLAG" ]]; then
         log_debug "Default superuser already initialized"
@@ -388,21 +410,7 @@ PY
     PLUGINS="$plugins_filtered_json" run_checked "base migrate without netbox_ping" netbox_manage migrate --no-input
 
     # Seed ObjectType row needed by netbox-ping migration 0003 (expects ipam.ipaddress object type).
-    if ! netbox_manage shell --interface python <<'PY'
-from django.contrib.contenttypes.models import ContentType
-from core.models import ObjectType
-
-ct = ContentType.objects.get_by_natural_key('ipam', 'ipaddress')
-obj, created = ObjectType.objects.get_or_create(
-    app_label='ipam',
-    model='ipaddress',
-    defaults={'content_type': ct},
-)
-print(f"ObjectType ipam.ipaddress present (created={created})")
-PY
-    then
-        log_warn "Seeding ObjectType ipam.ipaddress failed; continuing"
-    fi
+    run_warn "Seeding ObjectType ipam.ipaddress" seed_ipaddress_objecttype
 
     # Phase 2: restore plugins and run full migrations (plugins included)
     mv "$plugins_backup" "$PLUGINS_CONFIG_PATH"
@@ -540,6 +548,8 @@ log_debug "Ensuring NetBox DB roles via psql_admin"
 db_user_literal=$(sql_escape_literal "$DB_USER")
 db_password_literal=$(sql_escape_literal "$DB_PASSWORD")
 db_name_literal=$(sql_escape_literal "$DB_NAME")
+db_user_ident=$(sql_escape_identifier "$DB_USER")
+db_name_ident=$(sql_escape_identifier "$DB_NAME")
 if ! psql_admin postgres <<SQL
 DO
 \$\$
@@ -560,11 +570,11 @@ fi
 
 db_exists=$(psql_admin postgres -Atc "SELECT 1 FROM pg_database WHERE datname = '$db_name_literal'" 2>/dev/null || true)
 if [[ "$db_exists" != "1" ]]; then
-    if ! psql_admin postgres -c "CREATE DATABASE \"$DB_NAME\" OWNER \"$DB_USER\" ENCODING 'UTF8';" >/dev/null; then
+    if ! psql_admin postgres -c "CREATE DATABASE $db_name_ident OWNER $db_user_ident ENCODING 'UTF8';" >/dev/null; then
         log_critical "Failed to create NetBox database"
     fi
 else
-    if ! psql_admin postgres -c "ALTER DATABASE \"$DB_NAME\" OWNER TO \"$DB_USER\";" >/dev/null; then
+    if ! psql_admin postgres -c "ALTER DATABASE $db_name_ident OWNER TO $db_user_ident;" >/dev/null; then
         log_critical "Failed to update NetBox database owner"
     fi
 fi
