@@ -394,11 +394,15 @@ print(json.dumps(filtered))
 PY
     )
     cp "$PLUGINS_CONFIG_PATH" "$plugins_backup"
-    # Preserve napalm config while disabling netbox_ping
-    local plugins_config_json='{}'
-    if jq -e 'index("netbox_napalm_plugin")' <<<"$plugins_filtered_json" >/dev/null 2>&1; then
-        plugins_config_json="$NAPALM_PLUGIN_CONFIG"
-    fi
+
+    # Load existing PLUGINS_CONFIG from backup so plugin configs (napalm) are preserved
+    plugins_config_json=$(python3 - <<'PY'
+import json, runpy, sys
+cfg = runpy.run_path(sys.argv[1])
+pc = cfg.get("PLUGINS_CONFIG", {})
+print(json.dumps(pc))
+PY
+    "$plugins_backup")
 
     filtered_config=$(PLUGINS="$plugins_filtered_json" PLUGINS_CONFIG_JSON="$plugins_config_json" python3 - <<'PY'
 import json, os
