@@ -485,6 +485,7 @@ if jq -e 'index("netbox_napalm_plugin")' <<<"$PLUGINS" >/dev/null 2>&1; then
         + {NAPALM_TIMEOUT: $t})
     }')
 fi
+export NAPALM_PLUGIN_CONFIG
 write_plugins_config "$PLUGINS" "$NAPALM_PLUGIN_CONFIG"
 log_debug "Database config: DB_NAME=$DB_NAME DB_USER=$DB_USER PGDATA=$PGDATA socket_dir=$DB_SOCKET_DIR"
 
