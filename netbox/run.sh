@@ -402,7 +402,15 @@ try:
 except Exception:
     plugins = []
 filtered = [p for p in plugins if p != "netbox_ping"]
-print(f"PLUGINS = {json.dumps(filtered)}\nPLUGINS_CONFIG = {{}}")
+napalm_cfg = os.environ.get("NAPALM_PLUGIN_CONFIG", "{}")
+plugins_config = {}
+try:
+    cfg = json.loads(napalm_cfg)
+    if "netbox_napalm_plugin" in filtered:
+        plugins_config.update(cfg)
+except Exception:
+    pass
+print(f"PLUGINS = {json.dumps(filtered)}\nPLUGINS_CONFIG = {json.dumps(plugins_config)}")
 PY
     )
     printf '%s\n' "$filtered_config" > "$PLUGINS_CONFIG_PATH"
