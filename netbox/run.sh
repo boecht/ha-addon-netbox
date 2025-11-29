@@ -407,7 +407,10 @@ plugins_config = {}
 try:
     cfg = json.loads(napalm_cfg)
     if "netbox_napalm_plugin" in filtered:
-        plugins_config.update(cfg)
+        if isinstance(cfg, dict) and "netbox_napalm_plugin" in cfg:
+            plugins_config["netbox_napalm_plugin"] = cfg["netbox_napalm_plugin"]
+        else:
+            plugins_config["netbox_napalm_plugin"] = cfg
 except Exception:
     pass
 print(f"PLUGINS = {json.dumps(filtered)}\nPLUGINS_CONFIG = {json.dumps(plugins_config)}")
