@@ -354,14 +354,23 @@ run_housekeeping_if_needed() {
         return
     fi
     log_info "Applying database migrations"
-    # Phase 1: get core schema (creates core_objecttype/extras tables) before plugin migrations.
-    run_warn "netbox_manage migrate core" netbox_manage migrate --no-input core
-    run_warn "netbox_manage migrate extras" netbox_manage migrate --no-input extras
+    local plugins_backup="${PLUGINS_CONFIG_PATH}.bak"
+    local minimal_plugins='[]'
+
+    # Phase 1: run migrations with plugins disabled to avoid plugin signals before core tables exist.
+    log_info "Temporarily disabling plugins for base migrations"
+    cp "$PLUGINS_CONFIG_PATH" "$plugins_backup"
+    cat > "$PLUGINS_CONFIG_PATH" <<PY
+PLUGINS = $minimal_plugins
+PLUGINS_CONFIG = {}
+PY
+
+    run_checked "base migrate without plugins" netbox_manage migrate --no-input
 
     # Seed ObjectType row needed by netbox-ping migration 0003 (expects ipam.ipaddress object type).
     if ! netbox_manage shell --interface python <<'PY'
 from django.contrib.contenttypes.models import ContentType
-from extras.models import ObjectType
+from core.models import ObjectType
 
 ct = ContentType.objects.get_by_natural_key('ipam', 'ipaddress')
 obj, created = ObjectType.objects.get_or_create(
@@ -372,10 +381,12 @@ obj, created = ObjectType.objects.get_or_create(
 print(f"ObjectType ipam.ipaddress present (created={created})")
 PY
     then
-        log_warn "Seeding ObjectType ipam.ipaddress failed; continuing to full migrate"
+        log_warn "Seeding ObjectType ipam.ipaddress failed; continuing"
     fi
 
-    # Phase 2: run full migration set (plugins included)
+    # Phase 2: restore plugins and run full migrations (plugins included)
+    mv "$plugins_backup" "$PLUGINS_CONFIG_PATH"
+    log_info "Running full migrations with plugins enabled"
     run_checked "netbox_manage migrate" netbox_manage migrate --no-input
     log_info "Running trace_paths"
     run_checked "netbox_manage trace_paths" netbox_manage trace_paths --no-input
