@@ -394,26 +394,25 @@ print(json.dumps(filtered))
 PY
     )
     cp "$PLUGINS_CONFIG_PATH" "$plugins_backup"
-    filtered_config=$(python3 - <<'PY'
+    # Preserve napalm config while disabling netbox_ping
+    local plugins_config_json='{}'
+    if jq -e 'index("netbox_napalm_plugin")' <<<"$plugins_filtered_json" >/dev/null 2>&1; then
+        plugins_config_json="$NAPALM_PLUGIN_CONFIG"
+    fi
+
+    filtered_config=$(PLUGINS="$plugins_filtered_json" PLUGINS_CONFIG_JSON="$plugins_config_json" python3 - <<'PY'
 import json, os
 plugins_json = os.environ.get("PLUGINS", "[]")
+plugins_config_json = os.environ.get("PLUGINS_CONFIG_JSON", "{}")
 try:
     plugins = json.loads(plugins_json)
 except Exception:
     plugins = []
-filtered = [p for p in plugins if p != "netbox_ping"]
-napalm_cfg = os.environ.get("NAPALM_PLUGIN_CONFIG", "{}")
-plugins_config = {}
 try:
-    cfg = json.loads(napalm_cfg)
-    if "netbox_napalm_plugin" in filtered:
-        if isinstance(cfg, dict) and "netbox_napalm_plugin" in cfg:
-            plugins_config["netbox_napalm_plugin"] = cfg["netbox_napalm_plugin"]
-        else:
-            plugins_config["netbox_napalm_plugin"] = cfg
+    plugins_config = json.loads(plugins_config_json)
 except Exception:
-    pass
-print(f"PLUGINS = {json.dumps(filtered)}\nPLUGINS_CONFIG = {json.dumps(plugins_config)}")
+    plugins_config = {}
+print(f"PLUGINS = {json.dumps(plugins)}\nPLUGINS_CONFIG = {json.dumps(plugins_config)}")
 PY
     )
     printf '%s\n' "$filtered_config" > "$PLUGINS_CONFIG_PATH"
