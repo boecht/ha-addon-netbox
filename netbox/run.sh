@@ -102,13 +102,6 @@ if [[ -f "$SCRIPT_SOURCE" ]]; then
     log_debug "Addon run script: $SCRIPT_SOURCE (sha256=$SCRIPT_SHA)"
 fi
 
-if command -v psql >/dev/null 2>&1; then
-    log_debug "psql binary: $(command -v psql)"
-    log_debug "psql version: $(psql --version 2>&1)"
-else
-    log_warn "psql binary not found in PATH=$PATH"
-fi
-
 wait_for_postgres() {
     local interval=1
     local max=30
@@ -147,7 +140,7 @@ psql_admin() {
     PGSERVICEFILE=/dev/null \
     PGCONNECT_TIMEOUT=10 \
     PSQLRC=/dev/null \
-    gosu postgres psql -h "$socket_host" -p 5432 -U postgres -v ON_ERROR_STOP=1 -d "$database" "$@"
+    gosu postgres "$PSQL_BIN" -h "$socket_host" -p 5432 -U postgres -v ON_ERROR_STOP=1 -d "$database" "$@"
     then
         log_error "psql_admin failed for database=${database} (args: $*)"
         return 1
@@ -422,6 +415,19 @@ log_debug "Database config: DB_NAME=$DB_NAME DB_USER=$DB_USER PGDATA=$PGDATA soc
 
 add_pg_bin_dirs_to_path
 
+PSQL_BIN=$(resolve_pg_binary psql || true)
+if [[ -z "$PSQL_BIN" ]]; then
+    log_critical "psql not found; ensure PostgreSQL client is installed."
+fi
+PSQL_BIN_DIR=$(dirname "$PSQL_BIN")
+if [[ ":$PATH:" != *":$PSQL_BIN_DIR:"* ]]; then
+    PATH="$PSQL_BIN_DIR:$PATH"
+fi
+export PATH
+
+log_debug "psql binary: $PSQL_BIN"
+log_debug "psql version: $($PSQL_BIN --version 2>&1)"
+
 PG_CTL_PATH=$(resolve_pg_binary pg_ctl || true)
 if [[ -z "$PG_CTL_PATH" ]]; then
     log_critical "pg_ctl not found; ensure PostgreSQL binaries are installed."
@@ -484,25 +490,27 @@ DO
 DECLARE
   db_user text := '$db_user_literal';
   db_password text := '$db_password_literal';
-  db_name text := '$db_name_literal';
-  db_exists boolean;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = db_user) THEN
     EXECUTE format('CREATE ROLE %I LOGIN', db_user);
   END IF;
   EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', db_user, db_password);
-
-  SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = db_name) INTO db_exists;
-  IF NOT db_exists THEN
-    EXECUTE format('CREATE DATABASE %I OWNER %I ENCODING ''UTF8''', db_name, db_user);
-  ELSE
-    EXECUTE format('ALTER DATABASE %I OWNER TO %I', db_name, db_user);
-  END IF;
 END;
 \$\$ LANGUAGE plpgsql;
 SQL
 then
-    log_critical "Failed to provision NetBox database and roles"
+    log_critical "Failed to provision NetBox roles"
+fi
+
+db_exists=$(psql_admin postgres -Atc "SELECT 1 FROM pg_database WHERE datname = '$db_name_literal'" 2>/dev/null || true)
+if [[ "$db_exists" != "1" ]]; then
+    if ! psql_admin postgres -c "CREATE DATABASE \"$DB_NAME\" OWNER \"$DB_USER\" ENCODING 'UTF8';" >/dev/null; then
+        log_critical "Failed to create NetBox database"
+    fi
+else
+    if ! psql_admin postgres -c "ALTER DATABASE \"$DB_NAME\" OWNER TO \"$DB_USER\";" >/dev/null; then
+        log_critical "Failed to update NetBox database owner"
+    fi
 fi
 
 log_debug "Applying DB grants via psql_admin"
