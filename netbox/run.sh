@@ -354,6 +354,22 @@ run_housekeeping_if_needed() {
         return
     fi
     log_info "Applying database migrations"
+
+    # Prepare prerequisites for netbox-ping migrations (needs ObjectType for ipam.ipaddress)
+    run_warn "netbox_manage migrate contenttypes" netbox_manage migrate --no-input contenttypes
+    run_warn "Ensure ObjectType for ipam.ipaddress" netbox_manage shell --interface python <<'PY'
+from django.contrib.contenttypes.models import ContentType
+from extras.models import ObjectType
+
+ct = ContentType.objects.get_by_natural_key('ipam', 'ipaddress')
+obj, created = ObjectType.objects.get_or_create(
+    app_label='ipam',
+    model='ipaddress',
+    defaults={'content_type': ct},
+)
+print(f"ObjectType ipam.ipaddress present (created={created})")
+PY
+
     run_checked "netbox_manage migrate" netbox_manage migrate --no-input
     log_info "Running trace_paths"
     run_checked "netbox_manage trace_paths" netbox_manage trace_paths --no-input
