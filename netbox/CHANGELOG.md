@@ -2,7 +2,6 @@
 
 ## [1.0.1] - 2025-11-29
 
-### Fixed
 - Fixed PostgreSQL path resolution that caused permission errors during startup.
 - Fixed netbox-ping first-boot migration.
 

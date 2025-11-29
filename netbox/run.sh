@@ -354,10 +354,12 @@ run_housekeeping_if_needed() {
         return
     fi
     log_info "Applying database migrations"
+    # Phase 1: get core schema (creates core_objecttype/extras tables) before plugin migrations.
+    run_warn "netbox_manage migrate core" netbox_manage migrate --no-input core
+    run_warn "netbox_manage migrate extras" netbox_manage migrate --no-input extras
 
-    # Prepare prerequisites for netbox-ping migrations (needs ObjectType for ipam.ipaddress)
-    run_warn "netbox_manage migrate contenttypes" netbox_manage migrate --no-input contenttypes
-    run_warn "Ensure ObjectType for ipam.ipaddress" netbox_manage shell --interface python <<'PY'
+    # Seed ObjectType row needed by netbox-ping migration 0003 (expects ipam.ipaddress object type).
+    if ! netbox_manage shell --interface python <<'PY'
 from django.contrib.contenttypes.models import ContentType
 from extras.models import ObjectType
 
@@ -369,7 +371,11 @@ obj, created = ObjectType.objects.get_or_create(
 )
 print(f"ObjectType ipam.ipaddress present (created={created})")
 PY
+    then
+        log_warn "Seeding ObjectType ipam.ipaddress failed; continuing to full migrate"
+    fi
 
+    # Phase 2: run full migration set (plugins included)
     run_checked "netbox_manage migrate" netbox_manage migrate --no-input
     log_info "Running trace_paths"
     run_checked "netbox_manage trace_paths" netbox_manage trace_paths --no-input
