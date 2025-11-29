@@ -257,11 +257,14 @@ add_pg_bin_dirs_to_path() {
 }
 
 resolve_pg_binary() {
-    local binary="$1" path=""
-    if path=$(command -v "$binary" 2>/dev/null); then
-        printf '%s' "$path"
-        return 0
-    fi
+    local binary="$1" path="" candidate=""
+    # Prefer PostgreSQL package bin dirs over PATH to avoid wrapper scripts like /usr/bin/psql
+    for candidate in /usr/lib/postgresql/*/bin /usr/lib/postgresql/bin /usr/local/pgsql/bin; do
+        if [[ -x "$candidate/$binary" ]]; then
+            printf '%s' "$candidate/$binary"
+            return 0
+        fi
+    done
     add_pg_bin_dirs_to_path
     if path=$(command -v "$binary" 2>/dev/null); then
         printf '%s' "$path"
