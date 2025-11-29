@@ -357,15 +357,35 @@ run_housekeeping_if_needed() {
     local plugins_backup="${PLUGINS_CONFIG_PATH}.bak"
     local minimal_plugins='[]'
 
-    # Phase 1: run migrations with plugins disabled to avoid plugin signals before core tables exist.
-    log_info "Temporarily disabling plugins for base migrations"
-    cp "$PLUGINS_CONFIG_PATH" "$plugins_backup"
-    cat > "$PLUGINS_CONFIG_PATH" <<PY
-PLUGINS = $minimal_plugins
-PLUGINS_CONFIG = {}
+    # Phase 1: run migrations with all plugins except netbox_ping to avoid its early ObjectType dependency.
+    log_info "Temporarily disabling netbox_ping for base migrations"
+    local plugins_filtered_json filtered_config
+    plugins_filtered_json=$(python3 - <<'PY'
+import json, os
+plugins_json = os.environ.get("PLUGINS", "[]")
+try:
+    plugins = json.loads(plugins_json)
+except Exception:
+    plugins = []
+filtered = [p for p in plugins if p != "netbox_ping"]
+print(json.dumps(filtered))
 PY
+    )
+    cp "$PLUGINS_CONFIG_PATH" "$plugins_backup"
+    filtered_config=$(python3 - <<'PY'
+import json, os
+plugins_json = os.environ.get("PLUGINS", "[]")
+try:
+    plugins = json.loads(plugins_json)
+except Exception:
+    plugins = []
+filtered = [p for p in plugins if p != "netbox_ping"]
+print(f"PLUGINS = {json.dumps(filtered)}\nPLUGINS_CONFIG = {{}}")
+PY
+    )
+    printf '%s\n' "$filtered_config" > "$PLUGINS_CONFIG_PATH"
 
-    run_checked "base migrate without plugins" netbox_manage migrate --no-input
+    PLUGINS="$plugins_filtered_json" run_checked "base migrate without netbox_ping" netbox_manage migrate --no-input
 
     # Seed ObjectType row needed by netbox-ping migration 0003 (expects ipam.ipaddress object type).
     if ! netbox_manage shell --interface python <<'PY'
@@ -386,7 +406,7 @@ PY
 
     # Phase 2: restore plugins and run full migrations (plugins included)
     mv "$plugins_backup" "$PLUGINS_CONFIG_PATH"
-    log_info "Running full migrations with plugins enabled"
+    log_info "Running remaining migrations including netbox_ping"
     run_checked "netbox_manage migrate" netbox_manage migrate --no-input
     log_info "Running trace_paths"
     run_checked "netbox_manage trace_paths" netbox_manage trace_paths --no-input
