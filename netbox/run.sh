@@ -376,61 +376,17 @@ run_housekeeping_if_needed() {
         log_info "Database already migrated; skipping housekeeping"
         return
     fi
-    log_info "Applying database migrations"
-    local plugins_backup="${PLUGINS_CONFIG_PATH}.bak"
+    log_info "Applying database migrations (base apps first)"
 
-    # Phase 1: run migrations with all plugins except netbox_ping to avoid its early ObjectType dependency.
-    log_info "Temporarily disabling netbox_ping for base migrations"
-    local plugins_filtered_json filtered_config plugins_config_json
-    plugins_filtered_json=$(python3 - <<'PY'
-import json, os
-plugins_json = os.environ.get("PLUGINS", "[]")
-try:
-    plugins = json.loads(plugins_json)
-except Exception:
-    plugins = []
-filtered = [p for p in plugins if p != "netbox_ping"]
-print(json.dumps(filtered))
-PY
-    )
-    log_debug "Base migrate plugins (netbox_ping removed): $plugins_filtered_json"
-    cp "$PLUGINS_CONFIG_PATH" "$plugins_backup"
-
-    # Load existing PLUGINS_CONFIG from backup so plugin configs (napalm) are preserved
-    plugins_config_json=$(python3 - <<'PY'
-import json, runpy, sys
-cfg = runpy.run_path(sys.argv[1])
-pc = cfg.get("PLUGINS_CONFIG", {})
-print(json.dumps(pc))
-PY
-    "$plugins_backup")
-    log_debug "Base migrate PLUGINS_CONFIG preserved: $plugins_config_json"
-
-    filtered_config=$(PLUGINS="$plugins_filtered_json" PLUGINS_CONFIG_JSON="$plugins_config_json" python3 - <<'PY'
-import json, os
-plugins_json = os.environ.get("PLUGINS", "[]")
-plugins_config_json = os.environ.get("PLUGINS_CONFIG_JSON", "{}")
-try:
-    plugins = json.loads(plugins_json)
-except Exception:
-    plugins = []
-try:
-    plugins_config = json.loads(plugins_config_json)
-except Exception:
-    plugins_config = {}
-print(f"PLUGINS = {json.dumps(plugins)}\nPLUGINS_CONFIG = {json.dumps(plugins_config)}")
-PY
-    )
-    printf '%s\n' "$filtered_config" > "$PLUGINS_CONFIG_PATH"
-
-    PLUGINS="$plugins_filtered_json" run_checked "base migrate without netbox_ping" netbox_manage migrate --no-input
+    # Phase 1: migrate core apps (includes extras/core tables) without touching plugin config.
+    run_checked "base migrate (core apps)" netbox_manage migrate --no-input \
+        contenttypes auth account tenancy dcim ipam virtualization vpn wireless circuits extras core django_rq sessions taggit social_django thumbnail users
 
     # Seed ObjectType row needed by netbox-ping migration 0003 (expects ipam.ipaddress object type).
     run_warn "Seeding ObjectType ipam.ipaddress" seed_ipaddress_objecttype
 
-    # Phase 2: restore plugins and run full migrations (plugins included)
-    mv "$plugins_backup" "$PLUGINS_CONFIG_PATH"
-    log_info "Running remaining migrations including netbox_ping"
+    # Phase 2: full migrations including plugins
+    log_info "Running remaining migrations including plugins"
     run_checked "netbox_manage migrate" netbox_manage migrate --no-input
     log_info "Running trace_paths"
     run_checked "netbox_manage trace_paths" netbox_manage trace_paths --no-input
