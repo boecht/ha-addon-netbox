@@ -323,7 +323,7 @@ netbox_manage() {
 
 # Ensure ObjectType row required by netbox-ping is present
 seed_ipaddress_objecttype() {
-    netbox_manage shell --interface python - <<'PY'
+    netbox_manage shell --interface python <<'PY'
 try:
     from django.contrib.contenttypes.models import ContentType
     from core.models import ObjectType
