@@ -406,9 +406,7 @@ run_housekeeping_if_needed() {
     fi
     log_info "Applying database migrations (two-phase)"
 
-    # Phase 1: ensure core/extras tables exist without disabling plugins by rewriting configs.
-    run_checked "migrate contenttypes" netbox_manage migrate --no-input contenttypes
-    run_checked "migrate extras" netbox_manage migrate --no-input extras
+    # Phase 1: migrate core (and its dependencies) to create core_objecttype and related tables.
     run_checked "migrate core" netbox_manage migrate --no-input core
 
     # Seed ObjectType row needed by netbox-ping migration 0003 (expects ipam.ipaddress object type).
