@@ -407,31 +407,42 @@ run_housekeeping_if_needed() {
         log_info "Database already migrated; skipping housekeeping"
         return
     fi
-    log_info "Applying database migrations (plugins temporarily disabled, then restored)"
+    log_info "Applying database migrations"
 
-    local tmp_plugins
-    tmp_plugins=$(mktemp /tmp/ha-plugins.XXXXXX.py)
-    cp "$PLUGINS_CONFIG_PATH" "$tmp_plugins"
+    local tmp_plugins needs_two_phase=false
+    if jq -e 'index("netbox_ping")' <<<"$PLUGINS" >/dev/null 2>&1; then
+        needs_two_phase=true
+    fi
 
-    # Phase 1: migrate without plugins to let core/extras populate ObjectTypes
-    cat > "$PLUGINS_CONFIG_PATH" <<'PY'
+    if [[ "$needs_two_phase" == true ]]; then
+        log_info "Two-phase migrate: disable plugins first to satisfy netbox_ping ordering"
+        tmp_plugins=$(mktemp /tmp/ha-plugins.XXXXXX.py)
+        cp "$PLUGINS_CONFIG_PATH" "$tmp_plugins"
+
+        # Phase 1: migrate without plugins to let core/extras populate ObjectTypes
+        cat > "$PLUGINS_CONFIG_PATH" <<'PY'
 PLUGINS = []
 PLUGINS_CONFIG = {}
 PY
-    if ! netbox_manage migrate --no-input; then
-        log_critical "Migrations failed with plugins disabled"
+        if ! netbox_manage migrate --no-input; then
+            cp "$tmp_plugins" "$PLUGINS_CONFIG_PATH"; rm -f "$tmp_plugins" || true
+            log_critical "Migrations failed with plugins disabled"
+        fi
+
+        run_warn "Seeding ObjectType ipam.ipaddress" seed_ipaddress_objecttype
+
+        # Phase 2: restore plugins and migrate everything
+        cp "$tmp_plugins" "$PLUGINS_CONFIG_PATH"
+        if ! netbox_manage migrate --no-input; then
+            rm -f "$tmp_plugins" || true
+            log_critical "Migrations failed after restoring plugins"
+        fi
+        rm -f "$tmp_plugins" || true
+    else
+        if ! netbox_manage migrate --no-input; then
+            log_critical "Migrations failed"
+        fi
     fi
-
-    # Seed ObjectType needed by netbox-ping before enabling plugins
-    run_warn "Seeding ObjectType ipam.ipaddress" seed_ipaddress_objecttype
-
-    # Phase 2: restore plugins and migrate everything
-    cp "$tmp_plugins" "$PLUGINS_CONFIG_PATH"
-    if ! netbox_manage migrate --no-input; then
-        log_critical "Migrations failed after restoring plugins"
-    fi
-
-    rm -f "$tmp_plugins" || true
     log_info "Running trace_paths"
     run_checked "netbox_manage trace_paths" netbox_manage trace_paths --no-input
     log_info "Removing stale content types"
@@ -626,6 +637,8 @@ chown redis:redis "$REDIS_CONF"
 chown -R redis:redis "$REDIS_DATA_DIR"
 gosu redis redis-server "$REDIS_CONF" &
 REDIS_PID=$!
+
+log_warn "Redis upstream warns about vm.overcommit_memory; on Home Assistant OS we cannot change sysctl. This warning is expected and can be ignored unless Redis persistence fails."
 
 for attempt in {1..30}; do
     if redis-cli -h 127.0.0.1 ping >/dev/null 2>&1; then
