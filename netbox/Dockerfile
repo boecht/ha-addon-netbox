@@ -17,6 +17,7 @@ ARG IMAGE_TAG=unknown
 
 LABEL org.opencontainers.image.title="NetBox Home Assistant Add-on" \
     org.opencontainers.image.source="https://github.com/boecht/ha-addon-netbox" \
+    org.opencontainers.image.description="NetBox with embedded PostgreSQL/Redis for Home Assistant" \
     org.opencontainers.image.licenses="Apache-2.0" \
     org.opencontainers.image.revision="$IMAGE_COMMIT" \
     org.opencontainers.image.version="$IMAGE_TAG" \
@@ -81,6 +82,7 @@ ENV PGDATA=/data/postgres \
     NETBOX_DATA_DIR=/data/netbox \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
+    PYTHONUNBUFFERED=1 \
     IMAGE_COMMIT_FILE=/etc/netbox/image_commit \
     IMAGE_SOURCE_FILE=/etc/netbox/image_source \
     IMAGE_TAG_FILE=/etc/netbox/image_tag \
