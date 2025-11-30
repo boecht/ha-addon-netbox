@@ -115,6 +115,7 @@ read_provenance_field() {
 IMAGE_SOURCE=$(read_provenance_field "${IMAGE_SOURCE:-}" "${IMAGE_SOURCE_FILE:-}")
 IMAGE_TAG=$(read_provenance_field "${IMAGE_TAG:-}" "${IMAGE_TAG_FILE:-}")
 IMAGE_COMMIT=$(read_provenance_field "${IMAGE_COMMIT:-}" "${IMAGE_COMMIT_FILE:-}")
+BASE_IMAGE=$(read_provenance_field "${BASE_IMAGE:-}" "${BASE_IMAGE_FILE:-}")
 
 if [[ -n "$IMAGE_SOURCE" ]]; then
     log_debug "Add-on image source: $IMAGE_SOURCE"
@@ -124,6 +125,9 @@ if [[ -n "$IMAGE_TAG" ]]; then
 fi
 if [[ -n "$IMAGE_COMMIT" ]]; then
     log_debug "Add-on build commit: $IMAGE_COMMIT"
+fi
+if [[ -n "$BASE_IMAGE" ]]; then
+    log_debug "Base NetBox image: $BASE_IMAGE"
 fi
 
 wait_for_postgres() {
@@ -400,17 +404,18 @@ run_housekeeping_if_needed() {
         log_info "Database already migrated; skipping housekeeping"
         return
     fi
-    log_info "Applying database migrations (base apps first)"
+    log_info "Applying database migrations (two-phase)"
 
-    # Phase 1: migrate core apps (includes extras/core tables) without touching plugin config.
-    run_checked "base migrate (core apps)" netbox_manage migrate --no-input \
-        contenttypes auth account tenancy dcim ipam virtualization vpn wireless circuits extras core django_rq sessions taggit social_django thumbnail users
+    # Phase 1: ensure core/extras tables exist without disabling plugins by rewriting configs.
+    run_checked "migrate contenttypes" netbox_manage migrate --no-input contenttypes
+    run_checked "migrate extras" netbox_manage migrate --no-input extras
+    run_checked "migrate core" netbox_manage migrate --no-input core
 
     # Seed ObjectType row needed by netbox-ping migration 0003 (expects ipam.ipaddress object type).
     run_warn "Seeding ObjectType ipam.ipaddress" seed_ipaddress_objecttype
 
     # Phase 2: full migrations including plugins
-    log_info "Running remaining migrations including plugins"
+    log_info "Running full migrations including plugins"
     run_checked "netbox_manage migrate" netbox_manage migrate --no-input
     log_info "Running trace_paths"
     run_checked "netbox_manage trace_paths" netbox_manage trace_paths --no-input

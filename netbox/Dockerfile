@@ -10,6 +10,16 @@ ARG IMAGE_COMMIT=unknown
 ARG IMAGE_SOURCE=unknown
 ARG IMAGE_TAG=unknown
 
+# Persist provenance and base image so runtime logs can always show what was built
+RUN mkdir -p /etc/netbox \
+ && echo "${BUILD_FROM}" > /etc/netbox/base_image \
+ && commit_val=${IMAGE_COMMIT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)} \
+ && source_val=${IMAGE_SOURCE:-local-build} \
+ && tag_val=${IMAGE_TAG:-dev} \
+ && echo "$commit_val" > /etc/netbox/image_commit \
+ && echo "$source_val" > /etc/netbox/image_source \
+ && echo "$tag_val" > /etc/netbox/image_tag
+
 FROM scratch AS get-pip
 ADD --checksum=sha256:dffc3658baada4ef383f31c3c672d4e5e306a6e376cee8bee5dbdf1385525104 \
     https://bootstrap.pypa.io/get-pip.py /get-pip.py
@@ -67,19 +77,11 @@ ENV PGDATA=/data/postgres \
     REDIS_DATA_DIR=/data/redis \
     NETBOX_DATA_DIR=/data/netbox \
     LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
-
-# Persist provenance without relying on build-time ARG expansion in ENV
-RUN commit_val=${IMAGE_COMMIT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)} \
- && source_val=${IMAGE_SOURCE:-local-build} \
- && tag_val=${IMAGE_TAG:-dev} \
- && echo "$commit_val" > /etc/netbox/image_commit \
- && echo "$source_val" > /etc/netbox/image_source \
- && echo "$tag_val" > /etc/netbox/image_tag
-
-ENV IMAGE_COMMIT_FILE=/etc/netbox/image_commit \
+    LC_ALL=C.UTF-8 \
+    IMAGE_COMMIT_FILE=/etc/netbox/image_commit \
     IMAGE_SOURCE_FILE=/etc/netbox/image_source \
-    IMAGE_TAG_FILE=/etc/netbox/image_tag
+    IMAGE_TAG_FILE=/etc/netbox/image_tag \
+    BASE_IMAGE_FILE=/etc/netbox/base_image
 
 # tini ensures signals propagate to all subprocesses launched by addon-run.sh.
 ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/usr/local/bin/addon-run.sh"]
