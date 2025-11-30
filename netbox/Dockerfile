@@ -64,9 +64,9 @@ ENV PGDATA=/data/postgres \
     NETBOX_DATA_DIR=/data/netbox \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    IMAGE_COMMIT=${IMAGE_COMMIT} \
-    IMAGE_SOURCE=${IMAGE_SOURCE} \
-    IMAGE_TAG=${IMAGE_TAG}
+    IMAGE_COMMIT=$IMAGE_COMMIT \
+    IMAGE_SOURCE=$IMAGE_SOURCE \
+    IMAGE_TAG=$IMAGE_TAG
 
 # tini ensures signals propagate to all subprocesses launched by addon-run.sh.
 ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/usr/local/bin/addon-run.sh"]
