@@ -2,6 +2,9 @@
 
 # Builder inherits from the official NetBox container; Home Assistant injects BUILD_FROM.
 ARG BUILD_FROM=ghcr.io/netbox-community/netbox:v4.4.6-3.4.2@sha256:150fb9808d633712a75ad57ba364fa38caab3a88d123c470967fd3b9b2f32d9c
+ARG IMAGE_COMMIT=unknown
+ARG IMAGE_SOURCE=unknown
+ARG IMAGE_TAG=unknown
 
 FROM scratch AS get-pip
 ADD --checksum=sha256:dffc3658baada4ef383f31c3c672d4e5e306a6e376cee8bee5dbdf1385525104 \
@@ -60,7 +63,10 @@ ENV PGDATA=/data/postgres \
     REDIS_DATA_DIR=/data/redis \
     NETBOX_DATA_DIR=/data/netbox \
     LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
+    LC_ALL=C.UTF-8 \
+    IMAGE_COMMIT=${IMAGE_COMMIT} \
+    IMAGE_SOURCE=${IMAGE_SOURCE} \
+    IMAGE_TAG=${IMAGE_TAG}
 
 # tini ensures signals propagate to all subprocesses launched by addon-run.sh.
 ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/usr/local/bin/addon-run.sh"]

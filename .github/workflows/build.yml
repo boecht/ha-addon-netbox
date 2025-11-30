@@ -108,6 +108,9 @@ jobs:
             ${{ env.REGISTRY }}/boecht/ha-addon-netbox/netbox-${{ matrix.arch_slug }}:latest
           build-args: |
             BUILD_FROM=ghcr.io/netbox-community/netbox:${{ steps.netbox_version.outputs.netbox_version }}@${{ steps.netbox_version.outputs.netbox_digest }}
+            IMAGE_COMMIT=${{ github.sha }}
+            IMAGE_SOURCE=${{ github.repository }}
+            IMAGE_TAG=${{ steps.addon_version.outputs.version }}
 
       - name: Tag commit with add-on version
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.arch_slug == 'amd64'

@@ -102,6 +102,17 @@ if [[ -f "$SCRIPT_SOURCE" ]]; then
     log_debug "Addon run script: $SCRIPT_SOURCE (sha256=$SCRIPT_SHA)"
 fi
 
+# Optional provenance helpers (set at build/publish time if available)
+if [[ -n "${IMAGE_SOURCE:-}" ]]; then
+    log_debug "Add-on image source: $IMAGE_SOURCE"
+fi
+if [[ -n "${IMAGE_TAG:-}" ]]; then
+    log_debug "Add-on image tag: $IMAGE_TAG"
+fi
+if [[ -n "${IMAGE_COMMIT:-}" ]]; then
+    log_debug "Add-on build commit: $IMAGE_COMMIT"
+fi
+
 wait_for_postgres() {
     local interval=1
     local max=30
