@@ -324,16 +324,19 @@ netbox_manage() {
 # Ensure ObjectType row required by netbox-ping is present
 seed_ipaddress_objecttype() {
     netbox_manage shell --interface python - <<'PY'
-from django.contrib.contenttypes.models import ContentType
-from core.models import ObjectType
+try:
+    from django.contrib.contenttypes.models import ContentType
+    from core.models import ObjectType
 
-ct = ContentType.objects.get_by_natural_key("ipam", "ipaddress")
-obj, created = ObjectType.objects.get_or_create(
-    app_label="ipam",
-    model="ipaddress",
-    defaults={"content_type": ct},
-)
-print(f"ObjectType ipam.ipaddress present (created={created})")
+    ct = ContentType.objects.get_by_natural_key("ipam", "ipaddress")
+    obj, created = ObjectType.objects.get_or_create(
+        app_label="ipam",
+        model="ipaddress",
+        defaults={"content_type": ct},
+    )
+    print(f"ObjectType ipam.ipaddress present (created={created})")
+except Exception as exc:
+    print(f"Skipping ObjectType seed: {exc}")
 PY
 }
 
@@ -406,7 +409,7 @@ run_housekeeping_if_needed() {
     fi
     log_info "Applying database migrations"
 
-    # First attempt: full migrate with plugins
+    # Attempt full migrate with plugins; on failure, retry with plugins disabled then restored.
     if netbox_manage migrate --no-input; then
         log_debug "Full migrate succeeded"
     else
@@ -419,7 +422,6 @@ PLUGINS = []
 PLUGINS_CONFIG = {}
 PY
         if netbox_manage migrate --no-input; then
-            # Seed ObjectType needed by netbox-ping before restoring plugins
             run_warn "Seeding ObjectType ipam.ipaddress" seed_ipaddress_objecttype
             cp "$tmp_plugins" "$PLUGINS_CONFIG_PATH"
             if netbox_manage migrate --no-input; then
