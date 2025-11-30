@@ -102,11 +102,32 @@ if [[ -f "$SCRIPT_SOURCE" ]]; then
     log_debug "Addon run script: $SCRIPT_SOURCE (sha256=$SCRIPT_SHA)"
 fi
 
-if command -v psql >/dev/null 2>&1; then
-    log_debug "psql binary: $(command -v psql)"
-    log_debug "psql version: $(psql --version 2>&1)"
-else
-    log_warn "psql binary not found in PATH=$PATH"
+# Optional provenance helpers (set at build/publish time if available)
+read_provenance_field() {
+    local val="$1" file="$2"
+    if [[ -n "$val" ]]; then
+        printf '%s' "$val"
+    elif [[ -f "$file" ]]; then
+        tr -d '\n' < "$file"
+    fi
+}
+
+IMAGE_SOURCE=$(read_provenance_field "${IMAGE_SOURCE:-}" "${IMAGE_SOURCE_FILE:-}")
+IMAGE_TAG=$(read_provenance_field "${IMAGE_TAG:-}" "${IMAGE_TAG_FILE:-}")
+IMAGE_COMMIT=$(read_provenance_field "${IMAGE_COMMIT:-}" "${IMAGE_COMMIT_FILE:-}")
+BASE_IMAGE=$(read_provenance_field "${BASE_IMAGE:-}" "${BASE_IMAGE_FILE:-}")
+
+if [[ -n "$IMAGE_SOURCE" ]]; then
+    log_debug "Add-on image source: $IMAGE_SOURCE"
+fi
+if [[ -n "$IMAGE_TAG" ]]; then
+    log_debug "Add-on image tag: $IMAGE_TAG"
+fi
+if [[ -n "$IMAGE_COMMIT" ]]; then
+    log_debug "Add-on build commit: $IMAGE_COMMIT"
+fi
+if [[ -n "$BASE_IMAGE" ]]; then
+    log_debug "Base NetBox image: $BASE_IMAGE"
 fi
 
 wait_for_postgres() {
@@ -128,6 +149,12 @@ sql_escape_literal() {
     printf '%s' "$input"
 }
 
+# Escapes an identifier for use in SQL (double-quotes doubled, wrapped in quotes)
+sql_escape_identifier() {
+    local input=${1//\"/\"\"}
+    printf '"%s"' "$input"
+}
+
 psql_admin() {
     local database="$1" socket_host
     shift
@@ -147,7 +174,7 @@ psql_admin() {
     PGSERVICEFILE=/dev/null \
     PGCONNECT_TIMEOUT=10 \
     PSQLRC=/dev/null \
-    gosu postgres psql -h "$socket_host" -p 5432 -U postgres -v ON_ERROR_STOP=1 -d "$database" "$@"
+    gosu postgres "$PSQL_BIN" -h "$socket_host" -p 5432 -U postgres -v ON_ERROR_STOP=1 -d "$database" "$@"
     then
         log_error "psql_admin failed for database=${database} (args: $*)"
         return 1
@@ -264,11 +291,14 @@ add_pg_bin_dirs_to_path() {
 }
 
 resolve_pg_binary() {
-    local binary="$1" path=""
-    if path=$(command -v "$binary" 2>/dev/null); then
-        printf '%s' "$path"
-        return 0
-    fi
+    local binary="$1" path="" candidate=""
+    # Prefer PostgreSQL package bin dirs over PATH to avoid wrapper scripts like /usr/bin/psql
+    for candidate in /usr/lib/postgresql/*/bin /usr/lib/postgresql/bin /usr/local/pgsql/bin; do
+        if [[ -x "$candidate/$binary" ]]; then
+            printf '%s' "$candidate/$binary"
+            return 0
+        fi
+    done
     add_pg_bin_dirs_to_path
     if path=$(command -v "$binary" 2>/dev/null); then
         printf '%s' "$path"
@@ -289,6 +319,25 @@ resolve_pg_binary() {
 
 netbox_manage() {
     (cd /opt/netbox/netbox && /opt/netbox/venv/bin/python3 manage.py "$@")
+}
+
+# Ensure ObjectType row required by netbox-ping is present
+seed_ipaddress_objecttype() {
+    netbox_manage shell --interface python <<'PY'
+try:
+    from django.contrib.contenttypes.models import ContentType
+    from core.models import ObjectType
+
+    ct = ContentType.objects.get_by_natural_key("ipam", "ipaddress")
+    obj, created = ObjectType.objects.get_or_create(
+        app_label="ipam",
+        model="ipaddress",
+        defaults={"content_type": ct},
+    )
+    print(f"ObjectType ipam.ipaddress present (created={created})")
+except Exception as exc:
+    print(f"Skipping ObjectType seed: {exc}")
+PY
 }
 
 ensure_superuser_exists() {
@@ -342,7 +391,9 @@ PY
     then
         log_critical "Failed to reset NetBox admin credentials"
     fi
-    log_info "Reset complete; please toggle reset_superuser off in the add-on UI."
+    log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    log_info "★  Reset complete; please toggle reset_superuser off in the add-on UI.  ★"
+    log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 
 log_active_plugins() {
@@ -355,10 +406,45 @@ PY
 
 run_housekeeping_if_needed() {
     if netbox_manage migrate --check >/dev/null 2>&1; then
+        log_info "Database already migrated; skipping housekeeping"
         return
     fi
     log_info "Applying database migrations"
-    run_checked "netbox_manage migrate" netbox_manage migrate --no-input
+
+    local tmp_plugins needs_two_phase=false
+    if jq -e 'index("netbox_ping")' <<<"$PLUGINS" >/dev/null 2>&1; then
+        needs_two_phase=true
+    fi
+
+    if [[ "$needs_two_phase" == true ]]; then
+        log_info "Two-phase migrate: disable plugins first to satisfy netbox_ping ordering"
+        tmp_plugins=$(mktemp /tmp/ha-plugins.XXXXXX.py)
+        cp "$PLUGINS_CONFIG_PATH" "$tmp_plugins"
+
+        # Phase 1: migrate without plugins to let core/extras populate ObjectTypes
+        cat > "$PLUGINS_CONFIG_PATH" <<'PY'
+PLUGINS = []
+PLUGINS_CONFIG = {}
+PY
+        if ! netbox_manage migrate --no-input; then
+            cp "$tmp_plugins" "$PLUGINS_CONFIG_PATH"; rm -f "$tmp_plugins" || true
+            log_critical "Migrations failed with plugins disabled"
+        fi
+
+        run_warn "Seeding ObjectType ipam.ipaddress" seed_ipaddress_objecttype
+
+        # Phase 2: restore plugins and migrate everything
+        cp "$tmp_plugins" "$PLUGINS_CONFIG_PATH"
+        if ! netbox_manage migrate --no-input; then
+            rm -f "$tmp_plugins" || true
+            log_critical "Migrations failed after restoring plugins"
+        fi
+        rm -f "$tmp_plugins" || true
+    else
+        if ! netbox_manage migrate --no-input; then
+            log_critical "Migrations failed"
+        fi
+    fi
     log_info "Running trace_paths"
     run_checked "netbox_manage trace_paths" netbox_manage trace_paths --no-input
     log_info "Removing stale content types"
@@ -417,10 +503,24 @@ if jq -e 'index("netbox_napalm_plugin")' <<<"$PLUGINS" >/dev/null 2>&1; then
         + {NAPALM_TIMEOUT: $t})
     }')
 fi
+export NAPALM_PLUGIN_CONFIG
 write_plugins_config "$PLUGINS" "$NAPALM_PLUGIN_CONFIG"
 log_debug "Database config: DB_NAME=$DB_NAME DB_USER=$DB_USER PGDATA=$PGDATA socket_dir=$DB_SOCKET_DIR"
 
 add_pg_bin_dirs_to_path
+
+PSQL_BIN=$(resolve_pg_binary psql || true)
+if [[ -z "$PSQL_BIN" ]]; then
+    log_critical "psql not found; ensure PostgreSQL client is installed."
+fi
+PSQL_BIN_DIR=$(dirname "$PSQL_BIN")
+if [[ ":$PATH:" != *":$PSQL_BIN_DIR:"* ]]; then
+    PATH="$PSQL_BIN_DIR:$PATH"
+fi
+export PATH
+
+log_debug "psql binary: $PSQL_BIN"
+log_debug "psql version: $($PSQL_BIN --version 2>&1)"
 
 PG_CTL_PATH=$(resolve_pg_binary pg_ctl || true)
 if [[ -z "$PG_CTL_PATH" ]]; then
@@ -478,31 +578,43 @@ log_debug "Ensuring NetBox DB roles via psql_admin"
 db_user_literal=$(sql_escape_literal "$DB_USER")
 db_password_literal=$(sql_escape_literal "$DB_PASSWORD")
 db_name_literal=$(sql_escape_literal "$DB_NAME")
+db_user_ident=$(sql_escape_identifier "$DB_USER")
+db_name_ident=$(sql_escape_identifier "$DB_NAME")
 if ! psql_admin postgres <<SQL
 DO
 \$\$
 DECLARE
   db_user text := '$db_user_literal';
   db_password text := '$db_password_literal';
-  db_name text := '$db_name_literal';
-  db_exists boolean;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = db_user) THEN
     EXECUTE format('CREATE ROLE %I LOGIN', db_user);
   END IF;
   EXECUTE format('ALTER ROLE %I WITH LOGIN PASSWORD %L', db_user, db_password);
-
-  SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = db_name) INTO db_exists;
-  IF NOT db_exists THEN
-    EXECUTE format('CREATE DATABASE %I OWNER %I ENCODING ''UTF8''', db_name, db_user);
-  ELSE
-    EXECUTE format('ALTER DATABASE %I OWNER TO %I', db_name, db_user);
-  END IF;
 END;
 \$\$ LANGUAGE plpgsql;
 SQL
 then
-    log_critical "Failed to provision NetBox database and roles"
+    log_critical "Failed to provision NetBox roles"
+fi
+
+db_exists=$(psql_admin postgres -Atc "SELECT 1 FROM pg_database WHERE datname = '$db_name_literal'" 2>/dev/null || true)
+db_exists=${db_exists//[[:space:]]/}
+if [[ "$db_exists" != "1" ]]; then
+    if ! tmp_err=$(mktemp); then tmp_err=/tmp/netbox_create_db.err; fi
+    if ! psql_admin postgres -c "CREATE DATABASE $db_name_ident OWNER $db_user_ident ENCODING 'UTF8';" > /dev/null 2>"$tmp_err"; then
+        if grep -qi "already exists" "$tmp_err"; then
+            log_warn "NetBox database already exists; skipping create"
+        else
+            log_error "CREATE DATABASE failed: $(cat "$tmp_err")"
+            log_critical "Failed to create NetBox database"
+        fi
+    fi
+    rm -f "$tmp_err" || true
+else
+    if ! psql_admin postgres -c "ALTER DATABASE $db_name_ident OWNER TO $db_user_ident;" >/dev/null; then
+        log_critical "Failed to update NetBox database owner"
+    fi
 fi
 
 log_debug "Applying DB grants via psql_admin"
@@ -527,6 +639,8 @@ chown redis:redis "$REDIS_CONF"
 chown -R redis:redis "$REDIS_DATA_DIR"
 gosu redis redis-server "$REDIS_CONF" &
 REDIS_PID=$!
+
+log_warn "Redis upstream warns about vm.overcommit_memory; on Home Assistant OS we cannot change sysctl. This warning is expected and can be ignored unless Redis persistence fails."
 
 for attempt in {1..30}; do
     if redis-cli -h 127.0.0.1 ping >/dev/null 2>&1; then

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.1] - 2025-11-29
+
+- Fixed PostgreSQL path resolution that caused permission errors during startup.
+- Fixed netbox-ping first-boot migration.
+
 ## [1.0.0] - 2025-11-16
 
 - Ships NetBox v4.4.6 (container tag `v4.4.6-3.4.2`).

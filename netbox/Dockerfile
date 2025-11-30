@@ -9,9 +9,20 @@ ADD --checksum=sha256:dffc3658baada4ef383f31c3c672d4e5e306a6e376cee8bee5dbdf1385
 
 FROM ${BUILD_FROM}
 
+# Provenance build args (must be declared after FROM)
+ARG BUILD_FROM
+ARG IMAGE_COMMIT=unknown
+ARG IMAGE_SOURCE=unknown
+ARG IMAGE_TAG=unknown
+
 LABEL org.opencontainers.image.title="NetBox Home Assistant Add-on" \
     org.opencontainers.image.source="https://github.com/boecht/ha-addon-netbox" \
-    org.opencontainers.image.licenses="Apache-2.0"
+    org.opencontainers.image.description="NetBox with embedded PostgreSQL/Redis for Home Assistant" \
+    org.opencontainers.image.licenses="Apache-2.0" \
+    org.opencontainers.image.revision="$IMAGE_COMMIT" \
+    org.opencontainers.image.version="$IMAGE_TAG" \
+    org.opencontainers.image.base.name="$BUILD_FROM" \
+    org.opencontainers.image.vendor="$IMAGE_SOURCE"
 
 USER root
 
@@ -52,6 +63,16 @@ RUN --mount=type=bind,from=get-pip,source=/get-pip.py,target=/tmp/getpip.py \
     netbox-ping==0.54 \
     netbox-topology-views==4.4.0
 
+# Persist provenance and base image so runtime logs can always show what was built
+RUN mkdir -p /etc/netbox \
+ && echo "${BUILD_FROM}" > /etc/netbox/base_image \
+ && commit_val=${IMAGE_COMMIT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)} \
+ && source_val=${IMAGE_SOURCE:-local-build} \
+ && tag_val=${IMAGE_TAG:-dev} \
+ && echo "$commit_val" > /etc/netbox/image_commit \
+ && echo "$source_val" > /etc/netbox/image_source \
+ && echo "$tag_val" > /etc/netbox/image_tag
+
 # Home Assistant entrypoint takes over from upstream to orchestrate services.
 COPY run.sh /usr/local/bin/addon-run.sh
 RUN chmod +x /usr/local/bin/addon-run.sh
@@ -60,7 +81,12 @@ ENV PGDATA=/data/postgres \
     REDIS_DATA_DIR=/data/redis \
     NETBOX_DATA_DIR=/data/netbox \
     LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
+    LC_ALL=C.UTF-8 \
+    PYTHONUNBUFFERED=1 \
+    IMAGE_COMMIT_FILE=/etc/netbox/image_commit \
+    IMAGE_SOURCE_FILE=/etc/netbox/image_source \
+    IMAGE_TAG_FILE=/etc/netbox/image_tag \
+    BASE_IMAGE_FILE=/etc/netbox/base_image
 
 # tini ensures signals propagate to all subprocesses launched by addon-run.sh.
 ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/usr/local/bin/addon-run.sh"]

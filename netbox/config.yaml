@@ -1,7 +1,7 @@
 # Home Assistant add-on manifest for NetBox. Defines metadata, runtime options, and defaults
 # consumed by Supervisor when rendering the configuration UI.
 name: "NetBox"
-version: "1.0.0"
+version: "1.0.1"
 slug: "netbox"
 description: "Network asset management tool"
 arch:
@@ -34,7 +34,7 @@ options:
     - "*"
   housekeeping_interval: 3600
   enable_prometheus: false
-  debug_logging: true
+  debug_logging: false
   plugins:
     - netbox_napalm_plugin
     - netbox_ping
