@@ -391,7 +391,9 @@ PY
     then
         log_critical "Failed to reset NetBox admin credentials"
     fi
-    log_info "Reset complete; please toggle reset_superuser off in the add-on UI."
+    log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    log_info "★  Reset complete; please toggle reset_superuser off in the add-on UI.  ★"
+    log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 
 log_active_plugins() {
