@@ -16,7 +16,11 @@ ARG IMAGE_TAG=unknown
 
 LABEL org.opencontainers.image.title="NetBox Home Assistant Add-on" \
     org.opencontainers.image.source="https://github.com/boecht/ha-addon-netbox" \
-    org.opencontainers.image.licenses="Apache-2.0"
+    org.opencontainers.image.licenses="Apache-2.0" \
+    org.opencontainers.image.revision="$IMAGE_COMMIT" \
+    org.opencontainers.image.version="$IMAGE_TAG" \
+    org.opencontainers.image.base.name="$BUILD_FROM" \
+    org.opencontainers.image.vendor="$IMAGE_SOURCE"
 
 USER root
 

@@ -404,17 +404,34 @@ run_housekeeping_if_needed() {
         log_info "Database already migrated; skipping housekeeping"
         return
     fi
-    log_info "Applying database migrations (two-phase)"
+    log_info "Applying database migrations"
 
-    # Phase 1: migrate core (and its dependencies) to create core_objecttype and related tables.
-    run_checked "migrate core" netbox_manage migrate --no-input core
-
-    # Seed ObjectType row needed by netbox-ping migration 0003 (expects ipam.ipaddress object type).
-    run_warn "Seeding ObjectType ipam.ipaddress" seed_ipaddress_objecttype
-
-    # Phase 2: full migrations including plugins
-    log_info "Running full migrations including plugins"
-    run_checked "netbox_manage migrate" netbox_manage migrate --no-input
+    # First attempt: full migrate with plugins
+    if netbox_manage migrate --no-input; then
+        log_debug "Full migrate succeeded"
+    else
+        log_warn "Full migrate failed; retrying with plugins disabled, then re-enabled"
+        local tmp_plugins
+        tmp_plugins=$(mktemp /tmp/ha-plugins.XXXXXX.py)
+        cp "$PLUGINS_CONFIG_PATH" "$tmp_plugins"
+        cat > "$PLUGINS_CONFIG_PATH" <<'PY'
+PLUGINS = []
+PLUGINS_CONFIG = {}
+PY
+        if netbox_manage migrate --no-input; then
+            # Seed ObjectType needed by netbox-ping before restoring plugins
+            run_warn "Seeding ObjectType ipam.ipaddress" seed_ipaddress_objecttype
+            cp "$tmp_plugins" "$PLUGINS_CONFIG_PATH"
+            if netbox_manage migrate --no-input; then
+                log_info "Migrations completed after plugin retry"
+            else
+                log_critical "Migrations failed after restoring plugins"
+            fi
+        else
+            log_critical "Migrations failed even with plugins disabled"
+        fi
+        rm -f "$tmp_plugins" || true
+    fi
     log_info "Running trace_paths"
     run_checked "netbox_manage trace_paths" netbox_manage trace_paths --no-input
     log_info "Removing stale content types"
