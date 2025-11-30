@@ -2,6 +2,10 @@
 
 # Builder inherits from the official NetBox container; Home Assistant injects BUILD_FROM.
 ARG BUILD_FROM=ghcr.io/netbox-community/netbox:v4.4.6-3.4.2@sha256:150fb9808d633712a75ad57ba364fa38caab3a88d123c470967fd3b9b2f32d9c
+
+FROM ${BUILD_FROM}
+
+# Provenance build args (must be declared after FROM to comply with Dockerfile best practices)
 ARG IMAGE_COMMIT=unknown
 ARG IMAGE_SOURCE=unknown
 ARG IMAGE_TAG=unknown
@@ -63,10 +67,19 @@ ENV PGDATA=/data/postgres \
     REDIS_DATA_DIR=/data/redis \
     NETBOX_DATA_DIR=/data/netbox \
     LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8 \
-    IMAGE_COMMIT=$IMAGE_COMMIT \
-    IMAGE_SOURCE=$IMAGE_SOURCE \
-    IMAGE_TAG=$IMAGE_TAG
+    LC_ALL=C.UTF-8
+
+# Persist provenance without relying on build-time ARG expansion in ENV
+RUN commit_val=${IMAGE_COMMIT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)} \
+ && source_val=${IMAGE_SOURCE:-local-build} \
+ && tag_val=${IMAGE_TAG:-dev} \
+ && echo "$commit_val" > /etc/netbox/image_commit \
+ && echo "$source_val" > /etc/netbox/image_source \
+ && echo "$tag_val" > /etc/netbox/image_tag
+
+ENV IMAGE_COMMIT_FILE=/etc/netbox/image_commit \
+    IMAGE_SOURCE_FILE=/etc/netbox/image_source \
+    IMAGE_TAG_FILE=/etc/netbox/image_tag
 
 # tini ensures signals propagate to all subprocesses launched by addon-run.sh.
 ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/usr/local/bin/addon-run.sh"]

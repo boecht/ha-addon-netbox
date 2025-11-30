@@ -103,13 +103,26 @@ if [[ -f "$SCRIPT_SOURCE" ]]; then
 fi
 
 # Optional provenance helpers (set at build/publish time if available)
-if [[ -n "${IMAGE_SOURCE:-}" ]]; then
+read_provenance_field() {
+    local val="$1" file="$2"
+    if [[ -n "$val" ]]; then
+        printf '%s' "$val"
+    elif [[ -f "$file" ]]; then
+        tr -d '\n' < "$file"
+    fi
+}
+
+IMAGE_SOURCE=$(read_provenance_field "${IMAGE_SOURCE:-}" "${IMAGE_SOURCE_FILE:-}")
+IMAGE_TAG=$(read_provenance_field "${IMAGE_TAG:-}" "${IMAGE_TAG_FILE:-}")
+IMAGE_COMMIT=$(read_provenance_field "${IMAGE_COMMIT:-}" "${IMAGE_COMMIT_FILE:-}")
+
+if [[ -n "$IMAGE_SOURCE" ]]; then
     log_debug "Add-on image source: $IMAGE_SOURCE"
 fi
-if [[ -n "${IMAGE_TAG:-}" ]]; then
+if [[ -n "$IMAGE_TAG" ]]; then
     log_debug "Add-on image tag: $IMAGE_TAG"
 fi
-if [[ -n "${IMAGE_COMMIT:-}" ]]; then
+if [[ -n "$IMAGE_COMMIT" ]]; then
     log_debug "Add-on build commit: $IMAGE_COMMIT"
 fi
 
