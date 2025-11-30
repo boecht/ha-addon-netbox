@@ -542,6 +542,7 @@ then
 fi
 
 db_exists=$(psql_admin postgres -Atc "SELECT 1 FROM pg_database WHERE datname = '$db_name_literal'" 2>/dev/null || true)
+db_exists=${db_exists//[[:space:]]/}
 if [[ "$db_exists" != "1" ]]; then
     if ! psql_admin postgres -c "CREATE DATABASE $db_name_ident OWNER $db_user_ident ENCODING 'UTF8';" >/dev/null; then
         log_critical "Failed to create NetBox database"
