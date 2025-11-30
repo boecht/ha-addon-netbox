@@ -116,6 +116,8 @@ jobs:
             IMAGE_COMMIT=${{ github.sha }}
             IMAGE_SOURCE=${{ github.repository }}
             IMAGE_TAG=${{ steps.addon_version.outputs.version }}
+          provenance: false
+          sbom: false
 
       - name: Tag commit with add-on version
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.arch_slug == 'amd64'
