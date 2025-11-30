@@ -407,33 +407,31 @@ run_housekeeping_if_needed() {
         log_info "Database already migrated; skipping housekeeping"
         return
     fi
-    log_info "Applying database migrations"
+    log_info "Applying database migrations (plugins temporarily disabled, then restored)"
 
-    # Attempt full migrate with plugins; on failure, retry with plugins disabled then restored.
-    if netbox_manage migrate --no-input; then
-        log_debug "Full migrate succeeded"
-    else
-        log_warn "Full migrate failed; retrying with plugins disabled, then re-enabled"
-        local tmp_plugins
-        tmp_plugins=$(mktemp /tmp/ha-plugins.XXXXXX.py)
-        cp "$PLUGINS_CONFIG_PATH" "$tmp_plugins"
-        cat > "$PLUGINS_CONFIG_PATH" <<'PY'
+    local tmp_plugins
+    tmp_plugins=$(mktemp /tmp/ha-plugins.XXXXXX.py)
+    cp "$PLUGINS_CONFIG_PATH" "$tmp_plugins"
+
+    # Phase 1: migrate without plugins to let core/extras populate ObjectTypes
+    cat > "$PLUGINS_CONFIG_PATH" <<'PY'
 PLUGINS = []
 PLUGINS_CONFIG = {}
 PY
-        if netbox_manage migrate --no-input; then
-            run_warn "Seeding ObjectType ipam.ipaddress" seed_ipaddress_objecttype
-            cp "$tmp_plugins" "$PLUGINS_CONFIG_PATH"
-            if netbox_manage migrate --no-input; then
-                log_info "Migrations completed after plugin retry"
-            else
-                log_critical "Migrations failed after restoring plugins"
-            fi
-        else
-            log_critical "Migrations failed even with plugins disabled"
-        fi
-        rm -f "$tmp_plugins" || true
+    if ! netbox_manage migrate --no-input; then
+        log_critical "Migrations failed with plugins disabled"
     fi
+
+    # Seed ObjectType needed by netbox-ping before enabling plugins
+    run_warn "Seeding ObjectType ipam.ipaddress" seed_ipaddress_objecttype
+
+    # Phase 2: restore plugins and migrate everything
+    cp "$tmp_plugins" "$PLUGINS_CONFIG_PATH"
+    if ! netbox_manage migrate --no-input; then
+        log_critical "Migrations failed after restoring plugins"
+    fi
+
+    rm -f "$tmp_plugins" || true
     log_info "Running trace_paths"
     run_checked "netbox_manage trace_paths" netbox_manage trace_paths --no-input
     log_info "Removing stale content types"
