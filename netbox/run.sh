@@ -555,9 +555,16 @@ fi
 db_exists=$(psql_admin postgres -Atc "SELECT 1 FROM pg_database WHERE datname = '$db_name_literal'" 2>/dev/null || true)
 db_exists=${db_exists//[[:space:]]/}
 if [[ "$db_exists" != "1" ]]; then
-    if ! psql_admin postgres -c "CREATE DATABASE $db_name_ident OWNER $db_user_ident ENCODING 'UTF8';" >/dev/null; then
-        log_critical "Failed to create NetBox database"
+    if ! tmp_err=$(mktemp); then tmp_err=/tmp/netbox_create_db.err; fi
+    if ! psql_admin postgres -c "CREATE DATABASE $db_name_ident OWNER $db_user_ident ENCODING 'UTF8';" > /dev/null 2>"$tmp_err"; then
+        if grep -qi "already exists" "$tmp_err"; then
+            log_warn "NetBox database already exists; skipping create"
+        else
+            log_error "CREATE DATABASE failed: $(cat "$tmp_err")"
+            log_critical "Failed to create NetBox database"
+        fi
     fi
+    rm -f "$tmp_err" || true
 else
     if ! psql_admin postgres -c "ALTER DATABASE $db_name_ident OWNER TO $db_user_ident;" >/dev/null; then
         log_critical "Failed to update NetBox database owner"
