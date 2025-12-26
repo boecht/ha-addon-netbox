@@ -1,12 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
+    "config:recommended"
   ],
-  "regexManagers": [
+  "customManagers": [
     {
-      "fileMatch": [
-        "versions\\.yaml"
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/versions\\.yaml/"
       ],
       "matchStrings": [
         "netbox:\\s*\\n(?:.*\\n)*?version:\\s*(?<currentValue>v[0-9.-]+)"
@@ -15,8 +16,9 @@
       "datasourceTemplate": "github-releases"
     },
     {
-      "fileMatch": [
-        "versions\\.yaml"
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/versions\\.yaml/"
       ],
       "matchStrings": [
         "netbox_topology_views:\\s*\\n\\s*version:\\s*(?<currentValue>[0-9.]+)"
@@ -25,8 +27,9 @@
       "datasourceTemplate": "pypi"
     },
     {
-      "fileMatch": [
-        "versions\\.yaml"
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/versions\\.yaml/"
       ],
       "matchStrings": [
         "netbox_ping:\\s*\\n\\s*version:\\s*(?<currentValue>[0-9.]+)"
@@ -35,8 +38,9 @@
       "datasourceTemplate": "pypi"
     },
     {
-      "fileMatch": [
-        "versions\\.yaml"
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/versions\\.yaml/"
       ],
       "matchStrings": [
         "netbox_napalm_plugin:\\s*\\n\\s*version:\\s*(?<currentValue>[0-9.]+)"
@@ -48,7 +52,7 @@
   "packageRules": [
     {
       "matchManagers": [
-        "regex"
+        "custom.regex"
       ],
       "labels": [
         "dependencies"
