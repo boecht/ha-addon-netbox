@@ -13,5 +13,5 @@ plugins:
     version: 0.54
     pypi: https://pypi.org/project/netbox-ping/
   netbox_topology_views:
-    version: 4.4.0
+    version: 4.5.0
     pypi: https://pypi.org/project/netbox-topology-views/
