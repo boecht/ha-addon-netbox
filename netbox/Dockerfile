@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.20
+# syntax=docker/dockerfile:1.21
 
 # Builder inherits from the official NetBox container; Home Assistant injects BUILD_FROM.
 ARG BUILD_FROM=ghcr.io/netbox-community/netbox:v4.5.0-3.4.2@sha256:4086a68f39af87829a0a42c099e4c749bf949eeadd34a044b56a16a9fac1d6f4
