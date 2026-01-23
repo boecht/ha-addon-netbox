@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.21
 
 # Builder inherits from the official NetBox container; Home Assistant injects BUILD_FROM.
-ARG BUILD_FROM=ghcr.io/netbox-community/netbox:v4.5.0-3.4.2@sha256:4086a68f39af87829a0a42c099e4c749bf949eeadd34a044b56a16a9fac1d6f4
+ARG BUILD_FROM=ghcr.io/netbox-community/netbox:v4.5.1-3.4.2@sha256:28ba52f14185a9bd8203c2d579b231fe67e27ee8398dfb36b712b36d54974f22
 
 FROM scratch AS get-pip
 ADD --checksum=sha256:dffc3658baada4ef383f31c3c672d4e5e306a6e376cee8bee5dbdf1385525104 \
