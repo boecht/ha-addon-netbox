@@ -4,8 +4,7 @@
 ARG BUILD_FROM=ghcr.io/netbox-community/netbox:v4.5.1-3.4.2@sha256:28ba52f14185a9bd8203c2d579b231fe67e27ee8398dfb36b712b36d54974f22
 
 FROM scratch AS get-pip
-ADD --checksum=sha256:dffc3658baada4ef383f31c3c672d4e5e306a6e376cee8bee5dbdf1385525104 \
-    https://bootstrap.pypa.io/get-pip.py /get-pip.py
+ADD https://bootstrap.pypa.io/get-pip.py /get-pip.py
 
 FROM ${BUILD_FROM}
 
