@@ -10,7 +10,7 @@ plugins:
     version: 0.3.4
     pypi: https://pypi.org/project/netbox-napalm-plugin/
   netbox_ping:
-    version: 2.1.4
+    version: 2.3.0
     pypi: https://pypi.org/project/netbox-ping/
   netbox_topology_views:
     version: 4.5.0
