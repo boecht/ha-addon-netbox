@@ -5,8 +5,10 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     labels:
       - "dependencies"
+      - "github-actions"
     groups:
       github-actions:
         patterns:
@@ -14,11 +16,16 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      github-actions-security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
 
   - package-ecosystem: docker
     directory: /netbox
     schedule:
-      interval: daily
+      interval: "weekly"
+      day: "monday"
     labels:
       - "dependencies"
       - "docker"
