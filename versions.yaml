@@ -7,7 +7,7 @@ netbox:
   registry: https://github.com/netbox-community/netbox-docker/pkgs/container/netbox
 plugins:
   netbox_napalm_plugin:
-    version: 0.3.4
+    version: 0.3.5
     pypi: https://pypi.org/project/netbox-napalm-plugin/
   netbox_ping:
     version: 2.6.0
